@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 
 namespace TrafficSimulator
 {
@@ -11,10 +12,12 @@ namespace TrafficSimulator
         public const int RoadWidth = 160;
         public const int LanesPerDirection = 2;
         public const int LaneWidth = RoadWidth / 2 / LanesPerDirection;
-        private const int SpawnMargin = 60;
         private const int DespawnMargin = 80;
         private const int QueueGap = 55;
         private const int QueueStopBuffer = 30;
+        private const int CurbOffset = 26;
+        private const int CrosswalkOffset = 26;
+        private const int SidewalkOffset = 30;
 
         public static bool IsHorizontal(Direction dir)
         {
@@ -37,21 +40,67 @@ namespace TrafficSimulator
             return 0;
         }
 
-        public static System.Drawing.Point GetSpawnPosition(Direction dir, int lane, int offset)
+        // static object placed in the lane itself (e.g. a road hazard blocking traffic),
+        // measured as a distance back from the stop line - always lands on-screen.
+        public static System.Drawing.Point GetLaneStaticPosition(Direction dir, int lane, int offsetFromStopLine)
         {
             int laneCenter = GetLaneCenter(dir, lane);
             switch (dir)
             {
                 case Direction.Right:
-                    return new System.Drawing.Point(-SpawnMargin + offset, laneCenter);
+                    return new System.Drawing.Point(CenterX - RoadWidth / 2 - offsetFromStopLine, laneCenter);
                 case Direction.Left:
-                    return new System.Drawing.Point(CanvasWidth + SpawnMargin - offset, laneCenter);
+                    return new System.Drawing.Point(CenterX + RoadWidth / 2 + offsetFromStopLine, laneCenter);
                 case Direction.Down:
-                    return new System.Drawing.Point(laneCenter, -SpawnMargin + offset);
+                    return new System.Drawing.Point(laneCenter, CenterY - RoadWidth / 2 - offsetFromStopLine);
                 case Direction.Up:
-                    return new System.Drawing.Point(laneCenter, CanvasHeight + SpawnMargin - offset);
+                    return new System.Drawing.Point(laneCenter, CenterY + RoadWidth / 2 + offsetFromStopLine);
             }
             return new System.Drawing.Point(0, 0);
+        }
+
+        // static roadside object (bus stop) pushed out of the lane onto the curb,
+        // so it doesn't block traffic - measured back from the stop line.
+        public static System.Drawing.Point GetRoadsideStaticPosition(Direction dir, int lane, int offsetFromStopLine)
+        {
+            Point lanePos = GetLaneStaticPosition(dir, lane, offsetFromStopLine);
+            int laneCenter = GetLaneCenter(dir, lane);
+
+            if (IsHorizontal(dir))
+            {
+                int y = laneCenter < CenterY ? laneCenter - CurbOffset : laneCenter + CurbOffset;
+                return new System.Drawing.Point(lanePos.X, y);
+            }
+            else
+            {
+                int x = laneCenter < CenterX ? laneCenter - CurbOffset : laneCenter + CurbOffset;
+                return new System.Drawing.Point(x, lanePos.Y);
+            }
+        }
+
+        // where a pedestrian starts crossing: on the sidewalk just outside the given road,
+        // walking straight across to the opposite curb.
+        public static System.Drawing.Point GetCrosswalkSpawn(Direction road)
+        {
+            if (IsHorizontal(road))
+            {
+                int x = road == Direction.Right ? CenterX - RoadWidth / 2 - CrosswalkOffset : CenterX + RoadWidth / 2 + CrosswalkOffset;
+                int y = CenterY - RoadWidth / 2 - SidewalkOffset;
+                return new System.Drawing.Point(x, y);
+            }
+            else
+            {
+                int y = road == Direction.Down ? CenterY - RoadWidth / 2 - CrosswalkOffset : CenterY + RoadWidth / 2 + CrosswalkOffset;
+                int x = CenterX - RoadWidth / 2 - SidewalkOffset;
+                return new System.Drawing.Point(x, y);
+            }
+        }
+
+        public static bool IsPedestrianDoneCrossing(TrafficObject obj)
+        {
+            int limit = RoadWidth / 2 + SidewalkOffset + 20;
+            if (obj.Direction == Direction.Down) return obj.Y > CenterY + limit;
+            return obj.X > CenterX + limit; // Direction.Right
         }
 
         public static System.Drawing.Point GetQueuePosition(Direction dir, int lane, int queueIndex)

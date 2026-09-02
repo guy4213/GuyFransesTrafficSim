@@ -47,6 +47,10 @@ namespace TrafficSimulator
             this.pictureBoxCanvas.TabIndex = 0;
             this.pictureBoxCanvas.TabStop = false;
             this.pictureBoxCanvas.Paint += new System.Windows.Forms.PaintEventHandler(this.OnPaint);
+            this.pictureBoxCanvas.MouseDown += new System.Windows.Forms.MouseEventHandler(this.PictureBoxCanvas_MouseDown);
+            this.pictureBoxCanvas.MouseMove += new System.Windows.Forms.MouseEventHandler(this.PictureBoxCanvas_MouseMove);
+            this.pictureBoxCanvas.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PictureBoxCanvas_MouseUp);
+            this.pictureBoxCanvas.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.PictureBoxCanvas_MouseWheel);
             //
             // comboBoxRoad
             //

@@ -27,16 +27,38 @@ namespace TrafficSimulator
             Direction.Up     // Road 4 - South
         };
 
+        private TrafficObject _draggedObject;
+        private Point _dragGrabOffset;
+
         public MainForm()
         {
             InitializeComponent();
             DoubleBuffered = true;
 
             ApplyStartLightSelection();
+            SeedInitialTraffic();
 
             _simTimer.Interval = 100;
             _simTimer.Tick += SimTimer_Tick;
             _simTimer.Start();
+        }
+
+        private void SeedInitialTraffic()
+        {
+            foreach (Direction dir in RoadDirections)
+            {
+                Point p0 = RoadLayout.GetQueuePosition(dir, 0, 0);
+                _trafficCollection.Add(new Car(p0.X, p0.Y, 0, dir, CarModel.Sedan));
+            }
+
+            Point busStop1 = RoadLayout.GetRoadsideStaticPosition(Direction.Right, 1, 90);
+            _trafficCollection.Add(new BusStation(busStop1.X, busStop1.Y, 1, Direction.Right));
+
+            Point busStop2 = RoadLayout.GetRoadsideStaticPosition(Direction.Down, 1, 90);
+            _trafficCollection.Add(new BusStation(busStop2.X, busStop2.Y, 1, Direction.Down));
+
+            Point bus1 = RoadLayout.GetQueuePosition(Direction.Right, 1, 1);
+            _trafficCollection.Add(new Bus(bus1.X, bus1.Y, 1, Direction.Right));
         }
 
         private void SimTimer_Tick(object sender, EventArgs e)
@@ -105,7 +127,11 @@ namespace TrafficSimulator
             var objects = _trafficCollection.GetAllObjects();
             for (int i = objects.Count - 1; i >= 0; i--)
             {
-                if (RoadLayout.IsOutOfBounds(objects[i]))
+                bool gone = objects[i] is Pedestrian
+                    ? RoadLayout.IsPedestrianDoneCrossing(objects[i])
+                    : RoadLayout.IsOutOfBounds(objects[i]);
+
+                if (gone)
                 {
                     _trafficCollection.Remove(objects[i]);
                 }
@@ -180,15 +206,50 @@ namespace TrafficSimulator
                 g.DrawLine(stop, cx + rw / 2 - 4, cy + rw / 2, cx + 6, cy + rw / 2);
             }
 
+            using (Brush crosswalkBrush = new SolidBrush(markingColor))
+            {
+                foreach (Direction d in RoadDirections)
+                {
+                    DrawCrosswalk(g, d, crosswalkBrush);
+                }
+            }
+
             DrawRoadBadge(g, 1, 26, cy - rw / 2 - 16);
             DrawRoadBadge(g, 2, cx - rw / 2 - 16, 26);
             DrawRoadBadge(g, 3, w - 26, cy + rw / 2 + 16);
             DrawRoadBadge(g, 4, cx + rw / 2 + 16, h - 26);
 
-            DrawTrafficLightFor(g, Direction.Right, cx - rw / 2 - 14, cy - rw / 2 - 14); // Road 1 - West -> NW
-            DrawTrafficLightFor(g, Direction.Down, cx + rw / 2 + 14, cy - rw / 2 - 14);  // Road 2 - North -> NE
-            DrawTrafficLightFor(g, Direction.Left, cx + rw / 2 + 14, cy + rw / 2 + 14);  // Road 3 - East -> SE
-            DrawTrafficLightFor(g, Direction.Up, cx - rw / 2 - 14, cy + rw / 2 + 14);    // Road 4 - South -> SW
+            // each light sits ahead of its road's stop line, on the right-hand side of travel
+            DrawTrafficLightFor(g, Direction.Right, cx - rw / 2 - 14, cy + rw / 2 + 14); // Road 1 - West -> SW
+            DrawTrafficLightFor(g, Direction.Down, cx - rw / 2 - 14, cy - rw / 2 - 14);  // Road 2 - North -> NW
+            DrawTrafficLightFor(g, Direction.Left, cx + rw / 2 + 14, cy - rw / 2 - 14);  // Road 3 - East -> NE
+            DrawTrafficLightFor(g, Direction.Up, cx + rw / 2 + 14, cy + rw / 2 + 14);    // Road 4 - South -> SE
+        }
+
+        private void DrawCrosswalk(Graphics g, Direction road, Brush stripeBrush)
+        {
+            int cx = RoadLayout.CenterX;
+            int cy = RoadLayout.CenterY;
+            int rw = RoadLayout.RoadWidth;
+
+            if (RoadLayout.IsHorizontal(road))
+            {
+                int x = road == Direction.Right ? cx - rw / 2 - 26 : cx + rw / 2 + 26;
+                int top = cy - rw / 2, bottom = cy + rw / 2;
+                for (int y = top + 6; y < bottom; y += 18)
+                {
+                    g.FillRectangle(stripeBrush, x - 9, y, 18, 8);
+                }
+            }
+            else
+            {
+                int y = road == Direction.Down ? cy - rw / 2 - 26 : cy + rw / 2 + 26;
+                int left = cx - rw / 2, right = cx + rw / 2;
+                for (int x = left + 6; x < right; x += 18)
+                {
+                    g.FillRectangle(stripeBrush, x, y - 9, 8, 18);
+                }
+            }
         }
 
         private void DrawRoadBadge(Graphics g, int number, int x, int y)
@@ -247,18 +308,31 @@ namespace TrafficSimulator
             int lane = (int)numericUpDownLane.Value;
             string type = comboBoxEntityType.SelectedItem as string;
 
-            // static roadside objects are placed explicitly via Offset; vehicles
-            // queue up bumper-to-bumper behind the stop line instead.
+            // static objects are placed explicitly via Offset (measured back from the stop
+            // line); bus stations are pushed onto the curb so they don't block the lane.
             if (type == "BusStation" || type == "RoadHazard")
             {
                 int offset = (int)numericUpDownOffset.Value;
-                Point staticPos = RoadLayout.GetSpawnPosition(dir, lane, offset);
 
                 if (type == "BusStation")
-                    _trafficCollection.Add(new BusStation(staticPos.X, staticPos.Y, lane, dir));
+                {
+                    Point stationPos = RoadLayout.GetRoadsideStaticPosition(dir, lane, offset);
+                    _trafficCollection.Add(new BusStation(stationPos.X, stationPos.Y, lane, dir));
+                }
                 else
-                    _trafficCollection.Add(new RoadHazard(staticPos.X, staticPos.Y, lane, dir));
+                {
+                    Point hazardPos = RoadLayout.GetLaneStaticPosition(dir, lane, offset);
+                    _trafficCollection.Add(new RoadHazard(hazardPos.X, hazardPos.Y, lane, dir));
+                }
 
+                pictureBoxCanvas.Invalidate();
+                return;
+            }
+
+            if (type == "Pedestrian")
+            {
+                Point crossPos = RoadLayout.GetCrosswalkSpawn(dir);
+                _trafficCollection.Add(new Pedestrian(crossPos.X, crossPos.Y, lane, dir));
                 pictureBoxCanvas.Invalidate();
                 return;
             }
@@ -273,9 +347,6 @@ namespace TrafficSimulator
                     break;
                 case "EmergencyVehicle":
                     _trafficCollection.Add(new EmergencyVehicle(pos.X, pos.Y, lane, dir));
-                    break;
-                case "Pedestrian":
-                    _trafficCollection.Add(new Pedestrian(pos.X, pos.Y, lane, dir));
                     break;
                 case "Bicycle":
                     _trafficCollection.Add(new Bicycle(pos.X, pos.Y, lane, dir));
@@ -364,6 +435,62 @@ namespace TrafficSimulator
                     }
                 }
             }
+        }
+
+        private TrafficObject FindObjectAt(Point p)
+        {
+            var objects = _trafficCollection.GetAllObjects();
+            for (int i = objects.Count - 1; i >= 0; i--)
+            {
+                if (objects[i].GetBounds().Contains(p)) return objects[i];
+            }
+            return null;
+        }
+
+        private void PictureBoxCanvas_MouseDown(object sender, MouseEventArgs e)
+        {
+            TrafficObject hit = FindObjectAt(e.Location);
+
+            if (e.Button == MouseButtons.Right)
+            {
+                if (hit != null)
+                {
+                    _trafficCollection.Remove(hit);
+                    pictureBoxCanvas.Invalidate();
+                }
+                return;
+            }
+
+            if (e.Button == MouseButtons.Left && hit != null)
+            {
+                _draggedObject = hit;
+                _dragGrabOffset = new Point(e.X - hit.X, e.Y - hit.Y);
+            }
+        }
+
+        private void PictureBoxCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_draggedObject == null) return;
+
+            _draggedObject.X = e.X - _dragGrabOffset.X;
+            _draggedObject.Y = e.Y - _dragGrabOffset.Y;
+            pictureBoxCanvas.Invalidate();
+        }
+
+        private void PictureBoxCanvas_MouseUp(object sender, MouseEventArgs e)
+        {
+            _draggedObject = null;
+        }
+
+        private void PictureBoxCanvas_MouseWheel(object sender, MouseEventArgs e)
+        {
+            TrafficObject hit = FindObjectAt(e.Location);
+            if (hit == null) return;
+
+            float factor = e.Delta > 0 ? 1.1f : 0.9f;
+            hit.Width = Math.Max(8, Math.Min(160, (int)(hit.Width * factor)));
+            hit.Height = Math.Max(6, Math.Min(120, (int)(hit.Height * factor)));
+            pictureBoxCanvas.Invalidate();
         }
 
         public void ToggleNightMode()
