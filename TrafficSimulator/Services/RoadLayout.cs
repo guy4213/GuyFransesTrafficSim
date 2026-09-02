@@ -13,6 +13,8 @@ namespace TrafficSimulator
         public const int LaneWidth = RoadWidth / 2 / LanesPerDirection;
         private const int SpawnMargin = 60;
         private const int DespawnMargin = 80;
+        private const int QueueGap = 55;
+        private const int QueueStopBuffer = 30;
 
         public static bool IsHorizontal(Direction dir)
         {
@@ -48,6 +50,24 @@ namespace TrafficSimulator
                     return new System.Drawing.Point(laneCenter, -SpawnMargin + offset);
                 case Direction.Up:
                     return new System.Drawing.Point(laneCenter, CanvasHeight + SpawnMargin - offset);
+            }
+            return new System.Drawing.Point(0, 0);
+        }
+
+        public static System.Drawing.Point GetQueuePosition(Direction dir, int lane, int queueIndex)
+        {
+            int laneCenter = GetLaneCenter(dir, lane);
+            int back = QueueStopBuffer + queueIndex * QueueGap;
+            switch (dir)
+            {
+                case Direction.Right:
+                    return new System.Drawing.Point(CenterX - RoadWidth / 2 - back, laneCenter);
+                case Direction.Left:
+                    return new System.Drawing.Point(CenterX + RoadWidth / 2 + back, laneCenter);
+                case Direction.Down:
+                    return new System.Drawing.Point(laneCenter, CenterY - RoadWidth / 2 - back);
+                case Direction.Up:
+                    return new System.Drawing.Point(laneCenter, CenterY + RoadWidth / 2 + back);
             }
             return new System.Drawing.Point(0, 0);
         }

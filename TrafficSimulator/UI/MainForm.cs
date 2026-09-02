@@ -199,10 +199,28 @@ namespace TrafficSimulator
         {
             Direction dir = RoadDirections[comboBoxRoad.SelectedIndex];
             int lane = (int)numericUpDownLane.Value;
-            int offset = (int)numericUpDownOffset.Value;
-            Point pos = RoadLayout.GetSpawnPosition(dir, lane, offset);
+            string type = comboBoxEntityType.SelectedItem as string;
 
-            switch (comboBoxEntityType.SelectedItem as string)
+            // static roadside objects are placed explicitly via Offset; vehicles
+            // queue up bumper-to-bumper behind the stop line instead.
+            if (type == "BusStation" || type == "RoadHazard")
+            {
+                int offset = (int)numericUpDownOffset.Value;
+                Point staticPos = RoadLayout.GetSpawnPosition(dir, lane, offset);
+
+                if (type == "BusStation")
+                    _trafficCollection.Add(new BusStation(staticPos.X, staticPos.Y, lane, dir));
+                else
+                    _trafficCollection.Add(new RoadHazard(staticPos.X, staticPos.Y, lane, dir));
+
+                pictureBoxCanvas.Invalidate();
+                return;
+            }
+
+            int queueIndex = CountQueuedVehicles(dir, lane);
+            Point pos = RoadLayout.GetQueuePosition(dir, lane, queueIndex);
+
+            switch (type)
             {
                 case "Bus":
                     _trafficCollection.Add(new Bus(pos.X, pos.Y, lane, dir));
@@ -216,18 +234,23 @@ namespace TrafficSimulator
                 case "Bicycle":
                     _trafficCollection.Add(new Bicycle(pos.X, pos.Y, lane, dir));
                     break;
-                case "BusStation":
-                    _trafficCollection.Add(new BusStation(pos.X, pos.Y, lane, dir));
-                    break;
-                case "RoadHazard":
-                    _trafficCollection.Add(new RoadHazard(pos.X, pos.Y, lane, dir));
-                    break;
                 default:
                     _trafficCollection.Add(new Car(pos.X, pos.Y, lane, dir, CarModel.Sedan));
                     break;
             }
 
             pictureBoxCanvas.Invalidate();
+        }
+
+        private int CountQueuedVehicles(Direction dir, int lane)
+        {
+            int count = 0;
+            var objects = _trafficCollection.GetObjectsInLane(dir, lane);
+            for (int i = 0; i < objects.Count; i++)
+            {
+                if (objects[i] is RoadUser) count++;
+            }
+            return count;
         }
 
         private void OnRunClick(object sender, EventArgs e)
