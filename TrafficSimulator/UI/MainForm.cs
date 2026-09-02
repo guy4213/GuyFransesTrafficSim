@@ -29,7 +29,15 @@ namespace TrafficSimulator
             }
 
             RemoveOutOfBoundsObjects();
+            UpdateAnalyticsLabel();
             Invalidate();
+        }
+
+        private void UpdateAnalyticsLabel()
+        {
+            float congestion = _trafficCollection.GetCongestionRate();
+            double mileage = _trafficCollection.GetTotalMileage();
+            labelAnalytics.Text = $"Congestion: {congestion:F0}%   Total Mileage: {mileage:F0}";
         }
 
         private void RemoveOutOfBoundsObjects()
@@ -74,7 +82,40 @@ namespace TrafficSimulator
 
         private void OnAddEntityClick(object sender, EventArgs e)
         {
-            SpawnCar(0);
+            int lane = (int)numericUpDownLane.Value;
+            int x = (int)numericUpDownX.Value;
+
+            switch (comboBoxEntityType.SelectedItem as string)
+            {
+                case "Bus":
+                    _trafficCollection.Add(new Bus(x, GetLaneY(lane), lane, Direction.Right));
+                    break;
+                case "EmergencyVehicle":
+                    _trafficCollection.Add(new EmergencyVehicle(x, GetLaneY(lane), lane, Direction.Right));
+                    break;
+                case "Pedestrian":
+                    _trafficCollection.Add(new Pedestrian(x, GetLaneY(lane), lane, Direction.Right));
+                    break;
+                case "Bicycle":
+                    _trafficCollection.Add(new Bicycle(x, GetLaneY(lane), lane, Direction.Right));
+                    break;
+                case "BusStation":
+                    SpawnBusStation(x, lane);
+                    break;
+                case "RoadHazard":
+                    SpawnHazard(x, lane);
+                    break;
+                default:
+                    _trafficCollection.Add(new Car(x, GetLaneY(lane), lane, Direction.Right, CarModel.Sedan));
+                    break;
+            }
+
+            Invalidate();
+        }
+
+        private void OnToggleNightClick(object sender, EventArgs e)
+        {
+            ToggleNightMode();
         }
 
         private void OnDeleteEntityClick(object sender, EventArgs e)
@@ -93,13 +134,7 @@ namespace TrafficSimulator
                 {
                     try
                     {
-                        using (var fs = new System.IO.FileStream(sfd.FileName, System.IO.FileMode.Create))
-                        {
-#pragma warning disable SYSLIB0011
-                            var formatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                            formatter.Serialize(fs, _trafficCollection);
-#pragma warning restore SYSLIB0011
-                        }
+                        SaveLoadManager.Save(_trafficCollection, sfd.FileName);
                         MessageBox.Show("הסימולציה נשמרה בהצלחה!", "שמירה", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (Exception ex)
@@ -120,18 +155,12 @@ namespace TrafficSimulator
                 {
                     try
                     {
-                        using (var fs = new System.IO.FileStream(ofd.FileName, System.IO.FileMode.Open))
-                        {
-#pragma warning disable SYSLIB0011
-                            var formatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                            var loadedCollection = (TrafficObjectCollection)formatter.Deserialize(fs);
-#pragma warning restore SYSLIB0011
+                        var loadedCollection = SaveLoadManager.Load(ofd.FileName);
 
-                            _trafficCollection.GetAllObjects().Clear();
-                            foreach (var obj in loadedCollection.GetAllObjects())
-                            {
-                                _trafficCollection.Add(obj);
-                            }
+                        _trafficCollection.GetAllObjects().Clear();
+                        foreach (var obj in loadedCollection.GetAllObjects())
+                        {
+                            _trafficCollection.Add(obj);
                         }
                         Invalidate();
                         MessageBox.Show("הסימולציה נטענה בהצלחה!", "טעינה", MessageBoxButtons.OK, MessageBoxIcon.Information);

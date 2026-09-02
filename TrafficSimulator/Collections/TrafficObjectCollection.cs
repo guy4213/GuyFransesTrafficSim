@@ -4,6 +4,7 @@ using System.Drawing;
 
 namespace TrafficSimulator
 {
+    [Serializable]
     public class TrafficObjectCollection
     {
         private List<TrafficObject> _items = new List<TrafficObject>();
@@ -56,12 +57,24 @@ namespace TrafficSimulator
 
         public float GetCongestionRate()
         {
-            throw new NotImplementedException();
+            var roadUsers = _items.FindAll(item => item is RoadUser);
+            if (roadUsers.Count == 0) return 0f;
+
+            int slowedCount = roadUsers.FindAll(item => item.ActualSpeed < item.DesiredSpeed).Count;
+            return (float)slowedCount / roadUsers.Count * 100f;
         }
 
         public double GetTotalMileage()
         {
-            throw new NotImplementedException();
+            double total = 0;
+            foreach (var item in _items)
+            {
+                if (item is RoadUser)
+                {
+                    total += item.X;
+                }
+            }
+            return total;
         }
         public List<TrafficObject> GetObjectsInLane(int lane)
         {

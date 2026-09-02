@@ -3,6 +3,7 @@ using System.Drawing;
 
 namespace TrafficSimulator
 {
+    [Serializable]
     public class Car : RoadUser
     {
         public CarModel Model;
