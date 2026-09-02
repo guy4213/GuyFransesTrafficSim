@@ -27,7 +27,7 @@ namespace TrafficSimulator
             InitializeComponent();
             DoubleBuffered = true;
 
-            _simTimer.Interval = 50;
+            _simTimer.Interval = 100;
             _simTimer.Tick += SimTimer_Tick;
             _simTimer.Start();
         }
