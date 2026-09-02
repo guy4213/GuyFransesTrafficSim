@@ -72,6 +72,31 @@ namespace TrafficSimulator
             return new System.Drawing.Point(0, 0);
         }
 
+        public static int GetStopLineCoordinate(Direction dir)
+        {
+            switch (dir)
+            {
+                case Direction.Right: return CenterX - RoadWidth / 2;
+                case Direction.Left: return CenterX + RoadWidth / 2;
+                case Direction.Down: return CenterY - RoadWidth / 2;
+                case Direction.Up: return CenterY + RoadWidth / 2;
+            }
+            return 0;
+        }
+
+        public static bool HasCrossedStopLine(TrafficObject obj)
+        {
+            int stopLine = GetStopLineCoordinate(obj.Direction);
+            switch (obj.Direction)
+            {
+                case Direction.Right: return obj.X >= stopLine;
+                case Direction.Left: return obj.X <= stopLine;
+                case Direction.Down: return obj.Y >= stopLine;
+                case Direction.Up: return obj.Y <= stopLine;
+            }
+            return false;
+        }
+
         public static void Advance(TrafficObject obj, float amount)
         {
             switch (obj.Direction)

@@ -55,10 +55,27 @@ namespace TrafficSimulator
 
         public override void Draw(Graphics g, bool isNight)
         {
-            Brush busBrush = isNight ? Brushes.Aqua : Brushes.DarkGray;
+            Color bodyColor = isNight ? Color.FromArgb(120, 220, 220) : Color.FromArgb(90, 95, 102);
             var state = BeginOrientedDraw(g);
-            g.FillRectangle(busBrush, 0, 0, Width, Height);
-            g.DrawRectangle(Pens.Black, 0, 0, Width, Height);
+
+            DrawWheels(g, Width, Height);
+
+            using (Brush body = new SolidBrush(bodyColor))
+            using (var path = RoundedRect(0, 0, Width, Height, 5))
+            {
+                g.FillPath(body, path);
+                g.DrawPath(Pens.Black, path);
+            }
+
+            using (Brush windowBrush = new SolidBrush(Color.FromArgb(150, 190, 220, 235)))
+            {
+                float winW = Width * 0.12f;
+                float gap = Width * 0.05f;
+                for (int i = 0; i < 4; i++)
+                {
+                    g.FillRectangle(windowBrush, Width * 0.1f + i * (winW + gap), Height * 0.2f, winW, Height * 0.35f);
+                }
+            }
             EndOrientedDraw(g, state);
 
             using (Font font = new Font("Arial", 8, FontStyle.Bold))
@@ -79,6 +96,12 @@ namespace TrafficSimulator
                 {
                     IsStoppedAtStation = false;
                 }
+                return;
+            }
+
+            if (ShouldStopAtIntersection(all))
+            {
+                ActualSpeed = 0;
                 return;
             }
 

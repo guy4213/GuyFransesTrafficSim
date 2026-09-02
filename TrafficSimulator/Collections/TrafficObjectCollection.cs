@@ -8,6 +8,21 @@ namespace TrafficSimulator
     public class TrafficObjectCollection
     {
         private List<TrafficObject> _items = new List<TrafficObject>();
+
+        public Direction ActiveGreenDirection { get; set; } = Direction.Down;
+
+        public bool HasActiveEmergency
+        {
+            get
+            {
+                for (int i = 0; i < _items.Count; i++)
+                {
+                    if (_items[i] is EmergencyVehicle) return true;
+                }
+                return false;
+            }
+        }
+
         public TrafficObject this[int index]
         {
             get { return _items[index]; }

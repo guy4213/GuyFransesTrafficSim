@@ -31,6 +31,8 @@ namespace TrafficSimulator
             this.buttonRun = new System.Windows.Forms.Button();
             this.labelLane = new System.Windows.Forms.Label();
             this.labelOffset = new System.Windows.Forms.Label();
+            this.labelStartLight = new System.Windows.Forms.Label();
+            this.comboBoxStartLight = new System.Windows.Forms.ComboBox();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxCanvas)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownLane)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownOffset)).BeginInit();
@@ -124,6 +126,30 @@ namespace TrafficSimulator
             this.buttonAddEntity.UseVisualStyleBackColor = true;
             this.buttonAddEntity.Click += new System.EventHandler(this.OnAddEntityClick);
             //
+            // labelStartLight
+            //
+            this.labelStartLight.AutoSize = true;
+            this.labelStartLight.Location = new System.Drawing.Point(548, 524);
+            this.labelStartLight.Name = "labelStartLight";
+            this.labelStartLight.Size = new System.Drawing.Size(66, 15);
+            this.labelStartLight.TabIndex = 14;
+            this.labelStartLight.Text = "Start light:";
+            //
+            // comboBoxStartLight
+            //
+            this.comboBoxStartLight.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxStartLight.Items.AddRange(new object[] {
+            "1 - West",
+            "2 - North",
+            "3 - East",
+            "4 - South"});
+            this.comboBoxStartLight.Location = new System.Drawing.Point(620, 520);
+            this.comboBoxStartLight.Name = "comboBoxStartLight";
+            this.comboBoxStartLight.Size = new System.Drawing.Size(110, 23);
+            this.comboBoxStartLight.TabIndex = 15;
+            this.comboBoxStartLight.SelectedIndex = 1;
+            this.comboBoxStartLight.SelectedIndexChanged += new System.EventHandler(this.OnStartLightChanged);
+            //
             // buttonRun
             //
             this.buttonRun.BackColor = System.Drawing.Color.FromArgb(47, 125, 79);
@@ -194,6 +220,8 @@ namespace TrafficSimulator
             this.Controls.Add(this.buttonDeleteEntity);
             this.Controls.Add(this.buttonRun);
             this.Controls.Add(this.buttonAddEntity);
+            this.Controls.Add(this.comboBoxStartLight);
+            this.Controls.Add(this.labelStartLight);
             this.Controls.Add(this.comboBoxEntityType);
             this.Controls.Add(this.numericUpDownOffset);
             this.Controls.Add(this.labelOffset);
@@ -228,5 +256,7 @@ namespace TrafficSimulator
         private System.Windows.Forms.Button buttonRun;
         private System.Windows.Forms.Label labelLane;
         private System.Windows.Forms.Label labelOffset;
+        private System.Windows.Forms.Label labelStartLight;
+        private System.Windows.Forms.ComboBox comboBoxStartLight;
     }
 }

@@ -11,8 +11,13 @@ namespace TrafficSimulator
         private readonly Timer _simTimer = new Timer();
         private bool _isNight = false;
         private bool _isRunning = false;
-        private int _lightPhase = 0;
-        private int _lightTicks = 0;
+
+        private enum LightPhase { Green, Amber }
+        private const int GreenDurationTicks = 60;
+        private const int AmberDurationTicks = 15;
+        private int _lightCycleIndex = 1;
+        private LightPhase _currentPhase = LightPhase.Green;
+        private int _phaseTicks = 0;
 
         private static readonly Direction[] RoadDirections =
         {
@@ -26,6 +31,8 @@ namespace TrafficSimulator
         {
             InitializeComponent();
             DoubleBuffered = true;
+
+            ApplyStartLightSelection();
 
             _simTimer.Interval = 100;
             _simTimer.Tick += SimTimer_Tick;
@@ -52,11 +59,36 @@ namespace TrafficSimulator
 
         private void AdvanceTrafficLight()
         {
-            _lightTicks++;
-            if (_lightTicks > 44) // ~2.2s at 50ms/tick
+            _phaseTicks++;
+
+            if (_currentPhase == LightPhase.Green && _phaseTicks > GreenDurationTicks)
             {
-                _lightTicks = 0;
-                _lightPhase = (_lightPhase + 1) % 3;
+                _currentPhase = LightPhase.Amber;
+                _phaseTicks = 0;
+            }
+            else if (_currentPhase == LightPhase.Amber && _phaseTicks > AmberDurationTicks)
+            {
+                _lightCycleIndex = (_lightCycleIndex + 1) % RoadDirections.Length;
+                _currentPhase = LightPhase.Green;
+                _phaseTicks = 0;
+                _trafficCollection.ActiveGreenDirection = RoadDirections[_lightCycleIndex];
+            }
+        }
+
+        private void ApplyStartLightSelection()
+        {
+            _lightCycleIndex = comboBoxStartLight.SelectedIndex;
+            _currentPhase = LightPhase.Green;
+            _phaseTicks = 0;
+            _trafficCollection.ActiveGreenDirection = RoadDirections[_lightCycleIndex];
+            pictureBoxCanvas.Invalidate();
+        }
+
+        private void OnStartLightChanged(object sender, EventArgs e)
+        {
+            if (!_isRunning)
+            {
+                ApplyStartLightSelection();
             }
         }
 
@@ -64,7 +96,8 @@ namespace TrafficSimulator
         {
             float congestion = _trafficCollection.GetCongestionRate();
             double mileage = _trafficCollection.GetTotalMileage();
-            labelAnalytics.Text = $"Congestion: {congestion:F0}%   Total Mileage: {mileage:F0}";
+            string emergencyNote = _trafficCollection.HasActiveEmergency ? "   🚨 EMERGENCY OVERRIDE" : "";
+            labelAnalytics.Text = $"Congestion: {congestion:F0}%   Total Mileage: {mileage:F0}{emergencyNote}";
         }
 
         private void RemoveOutOfBoundsObjects()
@@ -152,7 +185,10 @@ namespace TrafficSimulator
             DrawRoadBadge(g, 3, w - 26, cy + rw / 2 + 16);
             DrawRoadBadge(g, 4, cx + rw / 2 + 16, h - 26);
 
-            DrawTrafficLight(g, cx + rw / 2 + 8, cy - rw / 2 - 44);
+            DrawTrafficLightFor(g, Direction.Right, cx - rw / 2 - 14, cy - rw / 2 - 14); // Road 1 - West -> NW
+            DrawTrafficLightFor(g, Direction.Down, cx + rw / 2 + 14, cy - rw / 2 - 14);  // Road 2 - North -> NE
+            DrawTrafficLightFor(g, Direction.Left, cx + rw / 2 + 14, cy + rw / 2 + 14);  // Road 3 - East -> SE
+            DrawTrafficLightFor(g, Direction.Up, cx - rw / 2 - 14, cy + rw / 2 + 14);    // Road 4 - South -> SW
         }
 
         private void DrawRoadBadge(Graphics g, int number, int x, int y)
@@ -167,17 +203,27 @@ namespace TrafficSimulator
             }
         }
 
-        private void DrawTrafficLight(Graphics g, int x, int y)
+        private void DrawTrafficLightFor(Graphics g, Direction dir, int anchorX, int anchorY)
         {
+            int x = anchorX - 11;
+            int y = anchorY - 29;
+
             using (Brush housing = new SolidBrush(Color.FromArgb(17, 18, 20)))
             {
                 g.FillRectangle(housing, x, y, 22, 58);
             }
 
+            bool isActiveRoad = dir == RoadDirections[_lightCycleIndex];
+            int activeIdx;
+            if (!isActiveRoad)
+                activeIdx = 0; // red
+            else
+                activeIdx = _currentPhase == LightPhase.Green ? 2 : 1; // green / amber
+
             Color[] colors = { Color.FromArgb(255, 77, 77), Color.FromArgb(255, 210, 63), Color.FromArgb(61, 220, 115) };
             for (int i = 0; i < 3; i++)
             {
-                Color c = (_isRunning && i == _lightPhase) ? colors[i] : Color.FromArgb(60, 255, 255, 255);
+                Color c = (i == activeIdx) ? colors[i] : Color.FromArgb(60, 255, 255, 255);
                 using (Brush b = new SolidBrush(c))
                 {
                     g.FillEllipse(b, x + 4, y + 4 + i * 18, 13, 13);

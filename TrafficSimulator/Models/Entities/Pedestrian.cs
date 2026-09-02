@@ -25,6 +25,12 @@ namespace TrafficSimulator
 
         public override void Move(TrafficObjectCollection all)
         {
+            if (ShouldStopAtIntersection(all))
+            {
+                ActualSpeed = 0;
+                return;
+            }
+
             EvaluateSurroundings(all);
             RoadLayout.Advance(this, ActualSpeed);
         }

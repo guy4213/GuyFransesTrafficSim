@@ -39,6 +39,21 @@ namespace TrafficSimulator
                 IsOvertaking = true;
             }
         }
+        protected bool ShouldStopAtIntersection(TrafficObjectCollection all)
+        {
+            if (!(this is EmergencyVehicle) && all.HasActiveEmergency)
+            {
+                return true;
+            }
+
+            if (RoadLayout.HasCrossedStopLine(this))
+            {
+                return false;
+            }
+
+            return all.ActiveGreenDirection != Direction;
+        }
+
         public override float EvaluateSurroundings(TrafficObjectCollection all)
         {
             TrafficObject closestAhead = null;

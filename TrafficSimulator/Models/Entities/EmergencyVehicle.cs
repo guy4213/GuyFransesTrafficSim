@@ -39,15 +39,27 @@ namespace TrafficSimulator
 
         public override void Draw(Graphics g, bool isNight)
         {
-            Brush carBrush = isNight ? Brushes.Red : Brushes.DarkRed;
+            Color bodyColor = isNight ? Color.FromArgb(255, 90, 80) : Color.FromArgb(178, 30, 24);
             var state = BeginOrientedDraw(g);
-            g.FillRectangle(carBrush, 0, 0, Width, Height);
-            g.DrawRectangle(Pens.Black, 0, 0, Width, Height);
+
+            DrawWheels(g, Width, Height);
+
+            using (Brush body = new SolidBrush(bodyColor))
+            using (var path = RoundedRect(0, 0, Width, Height, 6))
+            {
+                g.FillPath(body, path);
+                g.DrawPath(Pens.Black, path);
+            }
+
+            using (Brush stripe = new SolidBrush(Color.FromArgb(230, 230, 230)))
+            {
+                g.FillRectangle(stripe, 0, Height * 0.4f, Width, Height * 0.2f);
+            }
 
             if (SirenOn)
             {
                 Brush sirenBrush = (X / 10) % 2 == 0 ? Brushes.Red : Brushes.Blue;
-                g.FillRectangle(sirenBrush, (Width / 2) - 5, (Height / 2) - 5, 10, 10);
+                g.FillRectangle(sirenBrush, (Width / 2) - 6, -6, 12, 6);
             }
             EndOrientedDraw(g, state);
         }

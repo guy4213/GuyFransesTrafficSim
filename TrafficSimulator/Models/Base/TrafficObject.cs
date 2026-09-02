@@ -50,9 +50,35 @@ namespace TrafficSimulator
             return state;
         }
 
-        protected void EndOrientedDraw(Graphics g, GraphicsState state)
+        protected static void EndOrientedDraw(Graphics g, GraphicsState state)
         {
             g.Restore(state);
+        }
+
+        protected static GraphicsPath RoundedRect(float x, float y, float w, float h, float r)
+        {
+            var path = new GraphicsPath();
+            path.AddArc(x, y, r * 2, r * 2, 180, 90);
+            path.AddArc(x + w - r * 2, y, r * 2, r * 2, 270, 90);
+            path.AddArc(x + w - r * 2, y + h - r * 2, r * 2, r * 2, 0, 90);
+            path.AddArc(x, y + h - r * 2, r * 2, r * 2, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        protected static void DrawWheels(Graphics g, float width, float height)
+        {
+            using (Brush wheelBrush = new SolidBrush(Color.FromArgb(28, 28, 28)))
+            {
+                float wheelLen = Math.Min(9f, width * 0.18f);
+                float wheelThick = 3f;
+                float frontX = width * 0.22f;
+                float backX = width * 0.78f;
+                g.FillRectangle(wheelBrush, frontX - wheelLen / 2, -wheelThick, wheelLen, wheelThick);
+                g.FillRectangle(wheelBrush, frontX - wheelLen / 2, height, wheelLen, wheelThick);
+                g.FillRectangle(wheelBrush, backX - wheelLen / 2, -wheelThick, wheelLen, wheelThick);
+                g.FillRectangle(wheelBrush, backX - wheelLen / 2, height, wheelLen, wheelThick);
+            }
         }
     }
 }
