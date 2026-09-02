@@ -9,7 +9,6 @@ namespace TrafficSimulator
         protected RoadUser(int x, int y, int lane, Direction dir, float desiredSpeed)
             : base(x, y, lane, dir, desiredSpeed)
         {
-            throw new NotImplementedException();
         }
 
         protected bool IsLaneClear(TrafficObjectCollection all, int targetLane)
