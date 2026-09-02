@@ -64,17 +64,19 @@ namespace TrafficSimulator
         public static System.Drawing.Point GetRoadsideStaticPosition(Direction dir, int lane, int offsetFromStopLine)
         {
             Point lanePos = GetLaneStaticPosition(dir, lane, offsetFromStopLine);
-            int laneCenter = GetLaneCenter(dir, lane);
 
-            if (IsHorizontal(dir))
+            // push all the way past the outer edge of the road (not just past the lane
+            // center) so the station clears the asphalt regardless of which lane was picked.
+            switch (dir)
             {
-                int y = laneCenter < CenterY ? laneCenter - CurbOffset : laneCenter + CurbOffset;
-                return new System.Drawing.Point(lanePos.X, y);
-            }
-            else
-            {
-                int x = laneCenter < CenterX ? laneCenter - CurbOffset : laneCenter + CurbOffset;
-                return new System.Drawing.Point(x, lanePos.Y);
+                case Direction.Right: // West lanes sit in the top half -> push up past the curb
+                    return new System.Drawing.Point(lanePos.X, CenterY - RoadWidth / 2 - CurbOffset);
+                case Direction.Left: // East lanes sit in the bottom half -> push down past the curb
+                    return new System.Drawing.Point(lanePos.X, CenterY + RoadWidth / 2 + CurbOffset);
+                case Direction.Down: // North lanes sit in the left half -> push left past the curb
+                    return new System.Drawing.Point(CenterX - RoadWidth / 2 - CurbOffset, lanePos.Y);
+                default: // Up: South lanes sit in the right half -> push right past the curb
+                    return new System.Drawing.Point(CenterX + RoadWidth / 2 + CurbOffset, lanePos.Y);
             }
         }
 
