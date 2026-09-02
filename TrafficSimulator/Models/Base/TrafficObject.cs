@@ -17,21 +17,24 @@ namespace TrafficSimulator
 
         protected TrafficObject(int x, int y, int lane, Direction dir, float desiredSpeed)
         {
-            throw new NotImplementedException();
+            X = x;
+            Y = y;
+            Lane = lane;
+            Direction = dir;
+            DesiredSpeed = desiredSpeed;
+            ActualSpeed = desiredSpeed;
         }
 
         public abstract void Draw(Graphics g, bool isNight);
-
-        public abstract void Move();
-
+        public abstract void Move(TrafficObjectCollection all);
         public virtual Rectangle GetBounds()
         {
-            throw new NotImplementedException();
+            return new Rectangle(X, Y, Width, Height);
         }
 
         public virtual float EvaluateSurroundings(TrafficObjectCollection all)
         {
-            throw new NotImplementedException();
+            return ActualSpeed;
         }
     }
 }

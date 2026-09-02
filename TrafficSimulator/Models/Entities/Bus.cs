@@ -3,40 +3,96 @@ using System.Drawing;
 
 namespace TrafficSimulator
 {
+    [Serializable]
     public class Bus : RoadUser
     {
         public int PassengerCount;
         public bool IsStoppedAtStation;
 
-        public Bus(int x, int y, int lane, Direction dir, float desiredSpeed)
+        private int _stopTimer = 0;
+        private BusStation _lastServicedStation = null;
+
+        public Bus(int x, int y, int lane, Direction dir, float desiredSpeed=50f, int initialPassengers = 0)
             : base(x, y, lane, dir, desiredSpeed)
         {
-            throw new NotImplementedException();
+            Width = 80;
+            Height = 35;
+            PassengerCount = initialPassengers;
+            IsStoppedAtStation = false;
         }
 
         public void BoardPassenger()
         {
-            throw new NotImplementedException();
+            PassengerCount++;
         }
 
         public void DisembarkPassenger()
         {
-            throw new NotImplementedException();
+            PassengerCount = Math.Max(0, PassengerCount - 1);
         }
 
-        public bool CheckNearbyStation(TrafficObjectCollection all)
+        private BusStation GetNextStationToStop(TrafficObjectCollection all)
         {
-            throw new NotImplementedException();
+            foreach (var obj in all.GetObjectsInLane(Lane))
+            {
+                if (obj is BusStation station)
+                {
+                    int diff = station.X - X;
+
+                    if (diff <= 0 && _lastServicedStation == station)
+                    {
+                        _lastServicedStation = null;
+                    }
+
+                    if (diff > 0 && diff < 50 && station != _lastServicedStation)
+                    {
+                        return station;
+                    }
+                }
+            }
+            return null;
         }
 
         public override void Draw(Graphics g, bool isNight)
         {
-            throw new NotImplementedException();
+            Brush busBrush = isNight ? Brushes.Aqua : Brushes.DarkGray;
+            g.FillRectangle(busBrush, X, Y, Width, Height);
+            g.DrawRectangle(Pens.Black, X, Y, Width, Height);
+
+            using (Font font = new Font("Arial", 8, FontStyle.Bold))
+            {
+                Brush textBrush = isNight ? Brushes.Black : Brushes.White;
+                g.DrawString($"Bus ({PassengerCount})", font, textBrush, X + 5, Y + 10);
+            }
         }
 
-        public override void Move()
+        public override void Move(TrafficObjectCollection all)
         {
-            throw new NotImplementedException();
+            if (IsStoppedAtStation)
+            {
+                ActualSpeed = 0;
+                _stopTimer--;
+
+                if (_stopTimer <= 0)
+                {
+                    IsStoppedAtStation = false;
+                }
+                return;
+            }
+
+            BusStation targetStation = GetNextStationToStop(all);
+            if (targetStation != null)
+            {
+                IsStoppedAtStation = true;
+                _stopTimer = 15;
+                _lastServicedStation = targetStation;
+                BoardPassenger();
+                ActualSpeed = 0;
+                return;
+            }
+
+            EvaluateSurroundings(all);
+            X += (int)ActualSpeed;
         }
     }
 }

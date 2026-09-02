@@ -3,29 +3,30 @@ using System.Drawing;
 
 namespace TrafficSimulator
 {
-    public class Pedestrian : TrafficObject
+    [Serializable]
+    public class Pedestrian : RoadUser
     {
-        public bool IsWaitingForBus;
+        public bool IsCrossing { get; set; }
 
-        public Pedestrian(int x, int y, int lane, Direction dir, float desiredSpeed)
+        public Pedestrian(int x, int y, int lane, Direction dir, float desiredSpeed = 15f)
             : base(x, y, lane, dir, desiredSpeed)
         {
-            throw new NotImplementedException();
-        }
-
-        public bool DetectStoppedBusNearby(TrafficObjectCollection all)
-        {
-            throw new NotImplementedException();
+            Width = 15;
+            Height = 15;
+            IsCrossing = false;
         }
 
         public override void Draw(Graphics g, bool isNight)
         {
-            throw new NotImplementedException();
+            Brush pedBrush = isNight ? Brushes.LightGreen : Brushes.Green;
+            g.FillEllipse(pedBrush, X, Y, Width, Height);
+            g.DrawEllipse(Pens.Black, X, Y, Width, Height);
         }
 
-        public override void Move()
+        public override void Move(TrafficObjectCollection all)
         {
-            throw new NotImplementedException();
+            EvaluateSurroundings(all);
+            X += (int)ActualSpeed;
         }
     }
 }

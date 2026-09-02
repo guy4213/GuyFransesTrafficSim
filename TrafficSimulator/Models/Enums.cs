@@ -22,4 +22,11 @@ namespace TrafficSimulator
         Stopped,
         Yielding
     }
+    public enum StationType
+    {
+        Regular,  
+        Central,   
+        Express     
+    }
 }
+

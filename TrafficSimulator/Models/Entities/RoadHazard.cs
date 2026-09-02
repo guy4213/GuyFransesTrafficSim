@@ -3,27 +3,29 @@ using System.Drawing;
 
 namespace TrafficSimulator
 {
+    [Serializable]
     public class RoadHazard : TrafficObject
     {
-        public RoadHazard(int x, int y, int lane, Direction dir, float desiredSpeed)
-            : base(x, y, lane, dir, desiredSpeed)
+        public RoadHazard(int x, int y, int lane)
+            : base(x, y, lane, Direction.Right, 0)
         {
-            throw new NotImplementedException();
+            Width = 30;
+            Height = 30;
         }
 
-        public override float EvaluateSurroundings(TrafficObjectCollection all)
+        public override void Move(TrafficObjectCollection all)
         {
-            throw new NotImplementedException();
         }
 
         public override void Draw(Graphics g, bool isNight)
         {
-            throw new NotImplementedException();
-        }
+            Brush hazardBrush = isNight ? Brushes.OrangeRed : Brushes.Orange;
+            Point p1 = new Point(X + Width / 2, Y);
+            Point p2 = new Point(X, Y + Height);
+            Point p3 = new Point(X + Width, Y + Height);
 
-        public override void Move()
-        {
-            throw new NotImplementedException();
+            g.FillPolygon(hazardBrush, new Point[] { p1, p2, p3 });
+            g.DrawPolygon(Pens.Black, new Point[] { p1, p2, p3 });
         }
     }
 }

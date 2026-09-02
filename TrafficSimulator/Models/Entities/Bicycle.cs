@@ -3,27 +3,37 @@ using System.Drawing;
 
 namespace TrafficSimulator
 {
-    public class Bicycle : TrafficObject
+    [Serializable]
+    public class Bicycle : RoadUser
     {
-        public Bicycle(int x, int y, int lane, Direction dir, float desiredSpeed)
+        public Bicycle(int x, int y, int lane, Direction dir, float desiredSpeed = 40f)
             : base(x, y, lane, dir, desiredSpeed)
         {
-            throw new NotImplementedException();
-        }
-
-        public bool IsBlockedAhead(TrafficObjectCollection all)
-        {
-            throw new NotImplementedException();
+            Width = 30;
+            Height = 15;
         }
 
         public override void Draw(Graphics g, bool isNight)
         {
-            throw new NotImplementedException();
+            Brush bikeBrush = isNight ? Brushes.Magenta : Brushes.Purple;
+            g.FillRectangle(bikeBrush, X, Y, Width, Height);
+            g.DrawRectangle(Pens.Black, X, Y, Width, Height);
+
+            using (Pen pen = new Pen(Color.White, 2))
+            {
+                g.DrawLine(pen, X + 5, Y + Height / 2, X + Width - 5, Y + Height / 2);
+            }
         }
 
-        public override void Move()
+        public override void Move(TrafficObjectCollection all)
         {
-            throw new NotImplementedException();
+            EvaluateSurroundings(all);
+            X += (int)ActualSpeed;
+
+            if (ActualSpeed < DesiredSpeed)
+            {
+                AttemptLaneChange(all);
+            }
         }
     }
 }

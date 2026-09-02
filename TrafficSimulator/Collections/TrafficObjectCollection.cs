@@ -6,47 +6,52 @@ namespace TrafficSimulator
 {
     public class TrafficObjectCollection
     {
-        private List<TrafficObject> _items;
-
+        private List<TrafficObject> _items = new List<TrafficObject>();
         public TrafficObject this[int index]
         {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
+            get { return _items[index]; }
+            set {   _items[index] = value; }
         }
 
+        public List<TrafficObject> GetAllObjects()
+        {
+            return _items;
+        }
         public int Count
         {
-            get { throw new NotImplementedException(); }
+            get { return _items.Count; }
         }
 
         public void Add(TrafficObject obj)
         {
-            throw new NotImplementedException();
+           _items.Add(obj);
         }
 
         public void RemoveAt(int index)
         {
-            throw new NotImplementedException();
+            _items.RemoveAt(index);
         }
 
         public void Remove(TrafficObject obj)
         {
-            throw new NotImplementedException();
+            _items.Remove(obj);
         }
 
         public void Clear()
         {
-            throw new NotImplementedException();
+            _items.Clear();
         }
 
         public void DrawAll(Graphics g, bool isNightMode)
         {
-            throw new NotImplementedException();
+
+            _items.ForEach(item => item.Draw(g, isNightMode));
+
         }
 
         public void UpdateAll()
         {
-            throw new NotImplementedException();
+           _items.ForEach(item => item.Move(this));
         }
 
         public float GetCongestionRate()
@@ -58,5 +63,18 @@ namespace TrafficSimulator
         {
             throw new NotImplementedException();
         }
+        public List<TrafficObject> GetObjectsInLane(int lane)
+        {
+            List<TrafficObject> laneItems = new List<TrafficObject>();
+            for (int i = 0; i < _items.Count; i++)
+            {
+                if (_items[i].Lane == lane)
+                {
+                    laneItems.Add(_items[i]);
+                }
+            }
+            return laneItems;
+        }
     }
+    
 }

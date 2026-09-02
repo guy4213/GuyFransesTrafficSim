@@ -7,20 +7,29 @@ namespace TrafficSimulator
     {
         public CarModel Model;
 
-        public Car(int x, int y, int lane, Direction dir, float desiredSpeed, CarModel model)
+        public Car(int x, int y, int lane, Direction dir, CarModel model, float desiredSpeed = 90f)
             : base(x, y, lane, dir, desiredSpeed)
         {
-            throw new NotImplementedException();
+            Model = model;
+            Width = 50;  
+            Height = 25;
         }
 
         public override void Draw(Graphics g, bool isNight)
         {
-            throw new NotImplementedException();
+            Brush carBrush = isNight ? Brushes.Cyan : Brushes.Blue; 
+            g.FillRectangle(carBrush, X, Y, Width, Height);
+            
         }
 
-        public override void Move()
+        public override void Move(TrafficObjectCollection all)
         {
-            throw new NotImplementedException();
+            EvaluateSurroundings(all);
+            X += (int)ActualSpeed;
+            if(ActualSpeed<DesiredSpeed)
+            {
+                AttemptLaneChange(all);
+            }
         }
     }
 }
