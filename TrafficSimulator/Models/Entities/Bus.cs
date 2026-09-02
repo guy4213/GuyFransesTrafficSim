@@ -33,11 +33,11 @@ namespace TrafficSimulator
 
         private BusStation GetNextStationToStop(TrafficObjectCollection all)
         {
-            foreach (var obj in all.GetObjectsInLane(Lane))
+            foreach (var obj in all.GetObjectsInLane(Direction, Lane))
             {
                 if (obj is BusStation station)
                 {
-                    int diff = station.X - X;
+                    int diff = RoadLayout.ForwardDistance(this, station);
 
                     if (diff <= 0 && _lastServicedStation == station)
                     {
@@ -56,13 +56,15 @@ namespace TrafficSimulator
         public override void Draw(Graphics g, bool isNight)
         {
             Brush busBrush = isNight ? Brushes.Aqua : Brushes.DarkGray;
-            g.FillRectangle(busBrush, X, Y, Width, Height);
-            g.DrawRectangle(Pens.Black, X, Y, Width, Height);
+            var state = BeginOrientedDraw(g);
+            g.FillRectangle(busBrush, 0, 0, Width, Height);
+            g.DrawRectangle(Pens.Black, 0, 0, Width, Height);
+            EndOrientedDraw(g, state);
 
             using (Font font = new Font("Arial", 8, FontStyle.Bold))
             {
-                Brush textBrush = isNight ? Brushes.Black : Brushes.White;
-                g.DrawString($"Bus ({PassengerCount})", font, textBrush, X + 5, Y + 10);
+                Brush textBrush = isNight ? Brushes.White : Brushes.Black;
+                g.DrawString($"Bus ({PassengerCount})", font, textBrush, X, Y - 14);
             }
         }
 
@@ -92,7 +94,7 @@ namespace TrafficSimulator
             }
 
             EvaluateSurroundings(all);
-            X += (int)ActualSpeed;
+            RoadLayout.Advance(this, ActualSpeed);
         }
     }
 }

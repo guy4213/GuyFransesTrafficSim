@@ -6,8 +6,8 @@ namespace TrafficSimulator
     [Serializable]
     public class RoadHazard : TrafficObject
     {
-        public RoadHazard(int x, int y, int lane)
-            : base(x, y, lane, Direction.Right, 0)
+        public RoadHazard(int x, int y, int lane, Direction dir)
+            : base(x, y, lane, dir, 0)
         {
             Width = 30;
             Height = 30;

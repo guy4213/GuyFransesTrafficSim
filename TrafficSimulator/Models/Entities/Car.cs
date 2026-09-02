@@ -18,15 +18,16 @@ namespace TrafficSimulator
 
         public override void Draw(Graphics g, bool isNight)
         {
-            Brush carBrush = isNight ? Brushes.Cyan : Brushes.Blue; 
-            g.FillRectangle(carBrush, X, Y, Width, Height);
-            
+            Brush carBrush = isNight ? Brushes.Cyan : Brushes.Blue;
+            var state = BeginOrientedDraw(g);
+            g.FillRectangle(carBrush, 0, 0, Width, Height);
+            EndOrientedDraw(g, state);
         }
 
         public override void Move(TrafficObjectCollection all)
         {
             EvaluateSurroundings(all);
-            X += (int)ActualSpeed;
+            RoadLayout.Advance(this, ActualSpeed);
             if(ActualSpeed<DesiredSpeed)
             {
                 AttemptLaneChange(all);

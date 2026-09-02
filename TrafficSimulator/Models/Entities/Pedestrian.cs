@@ -26,7 +26,7 @@ namespace TrafficSimulator
         public override void Move(TrafficObjectCollection all)
         {
             EvaluateSurroundings(all);
-            X += (int)ActualSpeed;
+            RoadLayout.Advance(this, ActualSpeed);
         }
     }
 }

@@ -9,8 +9,8 @@ namespace TrafficSimulator
         public StationType Type { get; set; }
         public int WaitingPassengers { get; set; }
 
-        public BusStation(int x, int y, int lane, StationType type = StationType.Regular, int waitingPassengers = 5)
-            : base(x, y, lane, Direction.Right, 0) 
+        public BusStation(int x, int y, int lane, Direction dir, StationType type = StationType.Regular, int waitingPassengers = 5)
+            : base(x, y, lane, dir, 0)
         {
             Type = type;
             WaitingPassengers = waitingPassengers;

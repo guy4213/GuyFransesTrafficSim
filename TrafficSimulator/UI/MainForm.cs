@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace TrafficSimulator
@@ -9,6 +10,17 @@ namespace TrafficSimulator
         private readonly TrafficObjectCollection _trafficCollection = new TrafficObjectCollection();
         private readonly Timer _simTimer = new Timer();
         private bool _isNight = false;
+        private bool _isRunning = false;
+        private int _lightPhase = 0;
+        private int _lightTicks = 0;
+
+        private static readonly Direction[] RoadDirections =
+        {
+            Direction.Right, // Road 1 - West
+            Direction.Down,  // Road 2 - North
+            Direction.Left,  // Road 3 - East
+            Direction.Up     // Road 4 - South
+        };
 
         public MainForm()
         {
@@ -22,15 +34,30 @@ namespace TrafficSimulator
 
         private void SimTimer_Tick(object sender, EventArgs e)
         {
-            var objects = _trafficCollection.GetAllObjects();
-            for (int i = 0; i < objects.Count; i++)
+            if (_isRunning)
             {
-                objects[i].Move(_trafficCollection);
+                var objects = _trafficCollection.GetAllObjects();
+                for (int i = 0; i < objects.Count; i++)
+                {
+                    objects[i].Move(_trafficCollection);
+                }
+
+                RemoveOutOfBoundsObjects();
+                AdvanceTrafficLight();
+                UpdateAnalyticsLabel();
             }
 
-            RemoveOutOfBoundsObjects();
-            UpdateAnalyticsLabel();
-            Invalidate();
+            pictureBoxCanvas.Invalidate();
+        }
+
+        private void AdvanceTrafficLight()
+        {
+            _lightTicks++;
+            if (_lightTicks > 44) // ~2.2s at 50ms/tick
+            {
+                _lightTicks = 0;
+                _lightPhase = (_lightPhase + 1) % 3;
+            }
         }
 
         private void UpdateAnalyticsLabel()
@@ -45,7 +72,7 @@ namespace TrafficSimulator
             var objects = _trafficCollection.GetAllObjects();
             for (int i = objects.Count - 1; i >= 0; i--)
             {
-                if (objects[i].X > ClientSize.Width + 100)
+                if (RoadLayout.IsOutOfBounds(objects[i]))
                 {
                     _trafficCollection.Remove(objects[i]);
                 }
@@ -55,7 +82,9 @@ namespace TrafficSimulator
         public void OnPaint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
-            g.Clear(_isNight ? Color.FromArgb(30, 30, 40) : Color.LightGray);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            DrawJunction(g);
 
             var objects = _trafficCollection.GetAllObjects();
             for (int i = 0; i < objects.Count; i++)
@@ -64,10 +93,96 @@ namespace TrafficSimulator
             }
         }
 
-        protected override void OnPaint(PaintEventArgs e)
+        private void DrawJunction(Graphics g)
         {
-            base.OnPaint(e);
-            OnPaint(this, e);
+            int w = RoadLayout.CanvasWidth;
+            int h = RoadLayout.CanvasHeight;
+            int cx = RoadLayout.CenterX;
+            int cy = RoadLayout.CenterY;
+            int rw = RoadLayout.RoadWidth;
+
+            Color skyColor = _isNight ? Color.FromArgb(12, 13, 16) : Color.FromArgb(199, 204, 209);
+            Color curbColor = _isNight ? Color.FromArgb(74, 77, 71) : Color.FromArgb(216, 211, 196);
+            Color asphaltColor = _isNight ? Color.FromArgb(44, 47, 54) : Color.FromArgb(154, 160, 166);
+            Color markingColor = _isNight ? Color.FromArgb(233, 228, 210) : Color.FromArgb(247, 244, 234);
+
+            g.Clear(skyColor);
+
+            using (Brush curbBrush = new SolidBrush(curbColor))
+            {
+                g.FillRectangle(curbBrush, 0, cy - rw / 2 - 10, w, rw + 20);
+                g.FillRectangle(curbBrush, cx - rw / 2 - 10, 0, rw + 20, h);
+            }
+
+            using (Brush asphaltBrush = new SolidBrush(asphaltColor))
+            {
+                g.FillRectangle(asphaltBrush, 0, cy - rw / 2, w, rw);
+                g.FillRectangle(asphaltBrush, cx - rw / 2, 0, rw, h);
+            }
+
+            using (Pen dash = new Pen(markingColor, 3) { DashPattern = new float[] { 6, 5 } })
+            {
+                // horizontal road: outer center line + lane split within each half
+                g.DrawLine(dash, 0, cy, cx - rw / 2, cy);
+                g.DrawLine(dash, cx + rw / 2, cy, w, cy);
+                g.DrawLine(dash, 0, cy - rw / 4, cx - rw / 2, cy - rw / 4);
+                g.DrawLine(dash, cx + rw / 2, cy - rw / 4, w, cy - rw / 4);
+                g.DrawLine(dash, 0, cy + rw / 4, cx - rw / 2, cy + rw / 4);
+                g.DrawLine(dash, cx + rw / 2, cy + rw / 4, w, cy + rw / 4);
+
+                // vertical road
+                g.DrawLine(dash, cx, 0, cx, cy - rw / 2);
+                g.DrawLine(dash, cx, cy + rw / 2, cx, h);
+                g.DrawLine(dash, cx - rw / 4, 0, cx - rw / 4, cy - rw / 2);
+                g.DrawLine(dash, cx - rw / 4, cy + rw / 2, cx - rw / 4, h);
+                g.DrawLine(dash, cx + rw / 4, 0, cx + rw / 4, cy - rw / 2);
+                g.DrawLine(dash, cx + rw / 4, cy + rw / 2, cx + rw / 4, h);
+            }
+
+            using (Pen stop = new Pen(markingColor, 5))
+            {
+                g.DrawLine(stop, cx - rw / 2, cy + 6, cx - rw / 2, cy + rw / 2 - 4);
+                g.DrawLine(stop, cx + rw / 2, cy - rw / 2 + 4, cx + rw / 2, cy - 6);
+                g.DrawLine(stop, cx - 6, cy - rw / 2, cx - rw / 2 + 4, cy - rw / 2);
+                g.DrawLine(stop, cx + rw / 2 - 4, cy + rw / 2, cx + 6, cy + rw / 2);
+            }
+
+            DrawRoadBadge(g, 1, 26, cy - rw / 2 - 16);
+            DrawRoadBadge(g, 2, cx - rw / 2 - 16, 26);
+            DrawRoadBadge(g, 3, w - 26, cy + rw / 2 + 16);
+            DrawRoadBadge(g, 4, cx + rw / 2 + 16, h - 26);
+
+            DrawTrafficLight(g, cx + rw / 2 + 8, cy - rw / 2 - 44);
+        }
+
+        private void DrawRoadBadge(Graphics g, int number, int x, int y)
+        {
+            using (Brush accent = new SolidBrush(Color.FromArgb(242, 183, 5)))
+            using (Brush ink = new SolidBrush(Color.FromArgb(58, 43, 0)))
+            using (Font font = new Font("Segoe UI", 9, FontStyle.Bold))
+            using (StringFormat fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+            {
+                g.FillEllipse(accent, x - 12, y - 12, 24, 24);
+                g.DrawString(number.ToString(), font, ink, x, y, fmt);
+            }
+        }
+
+        private void DrawTrafficLight(Graphics g, int x, int y)
+        {
+            using (Brush housing = new SolidBrush(Color.FromArgb(17, 18, 20)))
+            {
+                g.FillRectangle(housing, x, y, 22, 58);
+            }
+
+            Color[] colors = { Color.FromArgb(255, 77, 77), Color.FromArgb(255, 210, 63), Color.FromArgb(61, 220, 115) };
+            for (int i = 0; i < 3; i++)
+            {
+                Color c = (_isRunning && i == _lightPhase) ? colors[i] : Color.FromArgb(60, 255, 255, 255);
+                using (Brush b = new SolidBrush(c))
+                {
+                    g.FillEllipse(b, x + 4, y + 4 + i * 18, 13, 13);
+                }
+            }
         }
 
         public void OnKeyDown(object sender, KeyEventArgs e)
@@ -82,35 +197,44 @@ namespace TrafficSimulator
 
         private void OnAddEntityClick(object sender, EventArgs e)
         {
+            Direction dir = RoadDirections[comboBoxRoad.SelectedIndex];
             int lane = (int)numericUpDownLane.Value;
-            int x = (int)numericUpDownX.Value;
+            int offset = (int)numericUpDownOffset.Value;
+            Point pos = RoadLayout.GetSpawnPosition(dir, lane, offset);
 
             switch (comboBoxEntityType.SelectedItem as string)
             {
                 case "Bus":
-                    _trafficCollection.Add(new Bus(x, GetLaneY(lane), lane, Direction.Right));
+                    _trafficCollection.Add(new Bus(pos.X, pos.Y, lane, dir));
                     break;
                 case "EmergencyVehicle":
-                    _trafficCollection.Add(new EmergencyVehicle(x, GetLaneY(lane), lane, Direction.Right));
+                    _trafficCollection.Add(new EmergencyVehicle(pos.X, pos.Y, lane, dir));
                     break;
                 case "Pedestrian":
-                    _trafficCollection.Add(new Pedestrian(x, GetLaneY(lane), lane, Direction.Right));
+                    _trafficCollection.Add(new Pedestrian(pos.X, pos.Y, lane, dir));
                     break;
                 case "Bicycle":
-                    _trafficCollection.Add(new Bicycle(x, GetLaneY(lane), lane, Direction.Right));
+                    _trafficCollection.Add(new Bicycle(pos.X, pos.Y, lane, dir));
                     break;
                 case "BusStation":
-                    SpawnBusStation(x, lane);
+                    _trafficCollection.Add(new BusStation(pos.X, pos.Y, lane, dir));
                     break;
                 case "RoadHazard":
-                    SpawnHazard(x, lane);
+                    _trafficCollection.Add(new RoadHazard(pos.X, pos.Y, lane, dir));
                     break;
                 default:
-                    _trafficCollection.Add(new Car(x, GetLaneY(lane), lane, Direction.Right, CarModel.Sedan));
+                    _trafficCollection.Add(new Car(pos.X, pos.Y, lane, dir, CarModel.Sedan));
                     break;
             }
 
-            Invalidate();
+            pictureBoxCanvas.Invalidate();
+        }
+
+        private void OnRunClick(object sender, EventArgs e)
+        {
+            _isRunning = !_isRunning;
+            buttonRun.Text = _isRunning ? "⏸ Pause" : "▶ Run";
+            buttonRun.BackColor = _isRunning ? Color.FromArgb(138, 31, 31) : Color.FromArgb(47, 125, 79);
         }
 
         private void OnToggleNightClick(object sender, EventArgs e)
@@ -121,7 +245,7 @@ namespace TrafficSimulator
         private void OnDeleteEntityClick(object sender, EventArgs e)
         {
             _trafficCollection.GetAllObjects().Clear();
-            Invalidate();
+            pictureBoxCanvas.Invalidate();
         }
 
         private void OnSaveClick(object sender, EventArgs e)
@@ -162,7 +286,7 @@ namespace TrafficSimulator
                         {
                             _trafficCollection.Add(obj);
                         }
-                        Invalidate();
+                        pictureBoxCanvas.Invalidate();
                         MessageBox.Show("הסימולציה נטענה בהצלחה!", "טעינה", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (Exception ex)
@@ -173,50 +297,11 @@ namespace TrafficSimulator
             }
         }
 
-        public void SpawnCar(int lane)
-        {
-            _trafficCollection.Add(new Car(0, GetLaneY(lane), lane, Direction.Right, CarModel.Sedan));
-        }
-
-        public void SpawnBus(int lane)
-        {
-            _trafficCollection.Add(new Bus(0, GetLaneY(lane), lane, Direction.Right));
-        }
-
-        public void SpawnEmergencyVehicle(int lane)
-        {
-            _trafficCollection.Add(new EmergencyVehicle(0, GetLaneY(lane), lane, Direction.Right));
-        }
-
-        public void SpawnPedestrian(int lane)
-        {
-            _trafficCollection.Add(new Pedestrian(0, GetLaneY(lane), lane, Direction.Right));
-        }
-
-        public void SpawnBicycle(int lane)
-        {
-            _trafficCollection.Add(new Bicycle(0, GetLaneY(lane), lane, Direction.Right));
-        }
-
-        public void SpawnBusStation(int x, int lane)
-        {
-            _trafficCollection.Add(new BusStation(x, GetLaneY(lane), lane));
-        }
-
-        public void SpawnHazard(int x, int lane)
-        {
-            _trafficCollection.Add(new RoadHazard(x, GetLaneY(lane), lane));
-        }
-
         public void ToggleNightMode()
         {
             _isNight = !_isNight;
-            Invalidate();
-        }
-
-        private int GetLaneY(int lane)
-        {
-            return 80 + (lane * 60);
+            buttonToggleNight.Text = _isNight ? "☀ Day" : "☾ Night";
+            pictureBoxCanvas.Invalidate();
         }
     }
 }

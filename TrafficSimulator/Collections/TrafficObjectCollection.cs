@@ -76,12 +76,12 @@ namespace TrafficSimulator
             }
             return total;
         }
-        public List<TrafficObject> GetObjectsInLane(int lane)
+        public List<TrafficObject> GetObjectsInLane(Direction direction, int lane)
         {
             List<TrafficObject> laneItems = new List<TrafficObject>();
             for (int i = 0; i < _items.Count; i++)
             {
-                if (_items[i].Lane == lane)
+                if (_items[i].Direction == direction && _items[i].Lane == lane)
                 {
                     laneItems.Add(_items[i]);
                 }

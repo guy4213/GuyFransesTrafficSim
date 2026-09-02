@@ -13,14 +13,14 @@ namespace TrafficSimulator
 
         protected bool IsLaneClear(TrafficObjectCollection all, int targetLane)
         {
-            var objectsInTargetLane = all.GetObjectsInLane(targetLane);
+            var objectsInTargetLane = all.GetObjectsInLane(Direction, targetLane);
             int safetyBuffer = 100;
 
             foreach (var obj in objectsInTargetLane)
             {
                 if (obj == this) continue;
 
-                if (Math.Abs(obj.X - this.X) < safetyBuffer)
+                if (Math.Abs(RoadLayout.ForwardDistance(this, obj)) < safetyBuffer)
                 {
                     return false;
                 }
@@ -31,21 +31,11 @@ namespace TrafficSimulator
 
         public void AttemptLaneChange(TrafficObjectCollection all)
         {
-            int targetLane = Lane + 1;
-
-            int maxLanes = 3;
-            if (targetLane >= maxLanes)
-            {
-                targetLane = Lane - 1;
-                if (targetLane < 0) return;
-            }
+            int targetLane = Lane == 0 ? 1 : 0;
 
             if (IsLaneClear(all, targetLane))
             {
-                Lane = targetLane;
-
-                Y = targetLane * 50 + 20;
-
+                RoadLayout.SetLane(this, targetLane);
                 IsOvertaking = true;
             }
         }
@@ -53,11 +43,11 @@ namespace TrafficSimulator
         {
             TrafficObject closestAhead = null;
             int minDistance = int.MaxValue;
-            var objectsInLane = all.GetObjectsInLane(this.Lane);
+            var objectsInLane = all.GetObjectsInLane(Direction, this.Lane);
 
             foreach (var obj in objectsInLane)
             {
-                int diff = obj.X - this.X;
+                int diff = RoadLayout.ForwardDistance(this, obj);
                 if (obj != this && diff > 0 && diff < 100 && minDistance > diff)
                 {
                     minDistance = diff;

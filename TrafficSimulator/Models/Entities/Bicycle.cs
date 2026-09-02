@@ -16,19 +16,21 @@ namespace TrafficSimulator
         public override void Draw(Graphics g, bool isNight)
         {
             Brush bikeBrush = isNight ? Brushes.Magenta : Brushes.Purple;
-            g.FillRectangle(bikeBrush, X, Y, Width, Height);
-            g.DrawRectangle(Pens.Black, X, Y, Width, Height);
+            var state = BeginOrientedDraw(g);
+            g.FillRectangle(bikeBrush, 0, 0, Width, Height);
+            g.DrawRectangle(Pens.Black, 0, 0, Width, Height);
 
             using (Pen pen = new Pen(Color.White, 2))
             {
-                g.DrawLine(pen, X + 5, Y + Height / 2, X + Width - 5, Y + Height / 2);
+                g.DrawLine(pen, 5, Height / 2, Width - 5, Height / 2);
             }
+            EndOrientedDraw(g, state);
         }
 
         public override void Move(TrafficObjectCollection all)
         {
             EvaluateSurroundings(all);
-            X += (int)ActualSpeed;
+            RoadLayout.Advance(this, ActualSpeed);
 
             if (ActualSpeed < DesiredSpeed)
             {

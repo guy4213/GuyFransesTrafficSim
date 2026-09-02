@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 
 namespace TrafficSimulator
 {
@@ -35,6 +36,23 @@ namespace TrafficSimulator
         public virtual float EvaluateSurroundings(TrafficObjectCollection all)
         {
             return ActualSpeed;
+        }
+
+        protected GraphicsState BeginOrientedDraw(Graphics g)
+        {
+            GraphicsState state = g.Save();
+            g.TranslateTransform(X + Width / 2f, Y + Height / 2f);
+            if (Direction == Direction.Up || Direction == Direction.Down)
+            {
+                g.RotateTransform(90);
+            }
+            g.TranslateTransform(-Width / 2f, -Height / 2f);
+            return state;
+        }
+
+        protected void EndOrientedDraw(Graphics g, GraphicsState state)
+        {
+            g.Restore(state);
         }
     }
 }
