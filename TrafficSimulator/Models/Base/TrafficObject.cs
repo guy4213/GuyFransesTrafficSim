@@ -42,9 +42,11 @@ namespace TrafficSimulator
         {
             GraphicsState state = g.Save();
             g.TranslateTransform(X + Width / 2f, Y + Height / 2f);
-            if (Direction == Direction.Up || Direction == Direction.Down)
+            switch (Direction)
             {
-                g.RotateTransform(90);
+                case Direction.Down: g.RotateTransform(90); break;
+                case Direction.Left: g.RotateTransform(180); break;
+                case Direction.Up: g.RotateTransform(270); break;
             }
             g.TranslateTransform(-Width / 2f, -Height / 2f);
             return state;
