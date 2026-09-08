@@ -487,10 +487,27 @@ namespace TrafficSimulator
             TrafficObject hit = FindObjectAt(e.Location);
             if (hit == null) return;
 
-            float factor = e.Delta > 0 ? 1.1f : 0.9f;
-            hit.Width = Math.Max(8, Math.Min(160, (int)(hit.Width * factor)));
-            hit.Height = Math.Max(6, Math.Min(120, (int)(hit.Height * factor)));
+            if (ModifierKeys.HasFlag(Keys.Shift))
+            {
+                RotateObject(hit, e.Delta > 0 ? 1 : -1);
+            }
+            else
+            {
+                float factor = e.Delta > 0 ? 1.1f : 0.9f;
+                hit.Width = Math.Max(8, Math.Min(160, (int)(hit.Width * factor)));
+                hit.Height = Math.Max(6, Math.Min(120, (int)(hit.Height * factor)));
+            }
+
             pictureBoxCanvas.Invalidate();
+        }
+
+        private void RotateObject(TrafficObject obj, int steps)
+        {
+            int idx = Array.IndexOf(RoadDirections, obj.Direction);
+            if (idx < 0) return;
+
+            int newIdx = ((idx + steps) % RoadDirections.Length + RoadDirections.Length) % RoadDirections.Length;
+            obj.Direction = RoadDirections[newIdx];
         }
 
         public void ToggleNightMode()
