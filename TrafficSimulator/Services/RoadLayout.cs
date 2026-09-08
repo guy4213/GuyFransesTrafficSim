@@ -13,10 +13,11 @@ namespace TrafficSimulator
         public const int LanesPerDirection = 2;
         public const int LaneWidth = RoadWidth / 2 / LanesPerDirection;
         private const int DespawnMargin = 80;
-        private const int QueueGap = 55;
-        private const int QueueStopBuffer = 30;
+        private const int QueueGap = 90;
         private const int CurbOffset = 26;
         private const int CrosswalkOffset = 26;
+        private const int CrosswalkHalfThickness = 9;
+        private const int VehicleStopGap = 10;
         private const int SidewalkOffset = 30;
 
         public static bool IsHorizontal(Direction dir)
@@ -29,34 +30,36 @@ namespace TrafficSimulator
             switch (dir)
             {
                 case Direction.Right:
-                    return CenterY - RoadWidth / 2 + LaneWidth * (lane) + LaneWidth / 2;
+                    // West approach: eastbound traffic uses the lower half.
+                    return CenterY + RoadWidth / 2 - LaneWidth * lane - LaneWidth / 2;
                 case Direction.Left:
-                    return CenterY + RoadWidth / 2 - LaneWidth * (lane) - LaneWidth / 2;
+                    // East approach: westbound traffic uses the upper half.
+                    return CenterY - RoadWidth / 2 + LaneWidth * lane + LaneWidth / 2;
                 case Direction.Down:
-                    return CenterX - RoadWidth / 2 + LaneWidth * (lane) + LaneWidth / 2;
+                    return CenterX - RoadWidth / 2 + LaneWidth * lane + LaneWidth / 2;
                 case Direction.Up:
-                    return CenterX + RoadWidth / 2 - LaneWidth * (lane) - LaneWidth / 2;
+                    return CenterX + RoadWidth / 2 - LaneWidth * lane - LaneWidth / 2;
             }
             return 0;
         }
 
-        // static object placed in the lane itself (e.g. a road hazard blocking traffic),
-        // measured as a distance back from the stop line - always lands on-screen.
-        public static System.Drawing.Point GetLaneStaticPosition(Direction dir, int lane, int offsetFromStopLine)
+        // Places the front of a road object behind the near edge of the crosswalk.
+        // Width is the object's travel length even when it is drawn vertically.
+        public static void PlaceBeforeCrosswalk(TrafficObject obj, int extraDistance = 0)
         {
-            int laneCenter = GetLaneCenter(dir, lane);
-            switch (dir)
-            {
-                case Direction.Right:
-                    return new System.Drawing.Point(CenterX - RoadWidth / 2 - offsetFromStopLine, laneCenter);
-                case Direction.Left:
-                    return new System.Drawing.Point(CenterX + RoadWidth / 2 + offsetFromStopLine, laneCenter);
-                case Direction.Down:
-                    return new System.Drawing.Point(laneCenter, CenterY - RoadWidth / 2 - offsetFromStopLine);
-                case Direction.Up:
-                    return new System.Drawing.Point(laneCenter, CenterY + RoadWidth / 2 + offsetFromStopLine);
-            }
-            return new System.Drawing.Point(0, 0);
+            CenterInLane(obj);
+
+            int travelSign = obj.Direction == Direction.Right || obj.Direction == Direction.Down ? 1 : -1;
+            int stopLine = GetStopLineCoordinate(obj.Direction);
+            int crosswalkCenter = stopLine - travelSign * CrosswalkOffset;
+            int approachingEdge = crosswalkCenter - travelSign * CrosswalkHalfThickness;
+            int front = approachingEdge - travelSign * (VehicleStopGap + Math.Max(0, extraDistance));
+            int objectCenter = front - travelSign * obj.Width / 2;
+
+            if (IsHorizontal(obj.Direction))
+                obj.X = objectCenter - obj.Width / 2;
+            else
+                obj.Y = objectCenter - obj.Height / 2;
         }
 
         // A bus stop sits beside the outgoing road, after the intersection in the
@@ -110,22 +113,9 @@ namespace TrafficSimulator
             return obj.X > CenterX + limit; // Direction.Right
         }
 
-        public static System.Drawing.Point GetQueuePosition(Direction dir, int lane, int queueIndex)
+        public static void PlaceInQueue(TrafficObject obj, int queueIndex)
         {
-            int laneCenter = GetLaneCenter(dir, lane);
-            int back = QueueStopBuffer + queueIndex * QueueGap;
-            switch (dir)
-            {
-                case Direction.Right:
-                    return new System.Drawing.Point(CenterX - RoadWidth / 2 - back, laneCenter);
-                case Direction.Left:
-                    return new System.Drawing.Point(CenterX + RoadWidth / 2 + back, laneCenter);
-                case Direction.Down:
-                    return new System.Drawing.Point(laneCenter, CenterY - RoadWidth / 2 - back);
-                case Direction.Up:
-                    return new System.Drawing.Point(laneCenter, CenterY + RoadWidth / 2 + back);
-            }
-            return new System.Drawing.Point(0, 0);
+            PlaceBeforeCrosswalk(obj, Math.Max(0, queueIndex) * QueueGap);
         }
 
         public static int GetStopLineCoordinate(Direction dir)

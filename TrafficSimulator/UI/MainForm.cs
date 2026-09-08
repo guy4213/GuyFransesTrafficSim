@@ -47,8 +47,9 @@ namespace TrafficSimulator
         {
             foreach (Direction dir in RoadDirections)
             {
-                Point p0 = RoadLayout.GetQueuePosition(dir, 0, 0);
-                _trafficCollection.Add(new Car(p0.X, p0.Y, 0, dir, CarModel.Sedan));
+                Car car = new Car(0, 0, 0, dir, CarModel.Sedan);
+                RoadLayout.PlaceInQueue(car, 0);
+                _trafficCollection.Add(car);
             }
 
             Point busStop1 = RoadLayout.GetRoadsideStaticPosition(Direction.Right, 1, 90);
@@ -57,8 +58,9 @@ namespace TrafficSimulator
             Point busStop2 = RoadLayout.GetRoadsideStaticPosition(Direction.Down, 1, 90);
             _trafficCollection.Add(new BusStation(busStop2.X, busStop2.Y, 1, Direction.Down));
 
-            Point bus1 = RoadLayout.GetQueuePosition(Direction.Right, 1, 1);
-            _trafficCollection.Add(new Bus(bus1.X, bus1.Y, 1, Direction.Right));
+            Bus bus = new Bus(0, 0, 1, Direction.Right);
+            RoadLayout.PlaceInQueue(bus, 0);
+            _trafficCollection.Add(bus);
         }
 
         private void SimTimer_Tick(object sender, EventArgs e)
@@ -321,8 +323,9 @@ namespace TrafficSimulator
                 }
                 else
                 {
-                    Point hazardPos = RoadLayout.GetLaneStaticPosition(dir, lane, offset);
-                    _trafficCollection.Add(new RoadHazard(hazardPos.X, hazardPos.Y, lane, dir));
+                    RoadHazard hazard = new RoadHazard(0, 0, lane, dir);
+                    RoadLayout.PlaceBeforeCrosswalk(hazard, offset);
+                    _trafficCollection.Add(hazard);
                 }
 
                 pictureBoxCanvas.Invalidate();
@@ -338,23 +341,26 @@ namespace TrafficSimulator
             }
 
             int queueIndex = CountQueuedVehicles(dir, lane);
-            Point pos = RoadLayout.GetQueuePosition(dir, lane, queueIndex);
+            TrafficObject vehicle;
 
             switch (type)
             {
                 case "Bus":
-                    _trafficCollection.Add(new Bus(pos.X, pos.Y, lane, dir));
+                    vehicle = new Bus(0, 0, lane, dir);
                     break;
                 case "EmergencyVehicle":
-                    _trafficCollection.Add(new EmergencyVehicle(pos.X, pos.Y, lane, dir));
+                    vehicle = new EmergencyVehicle(0, 0, lane, dir);
                     break;
                 case "Bicycle":
-                    _trafficCollection.Add(new Bicycle(pos.X, pos.Y, lane, dir));
+                    vehicle = new Bicycle(0, 0, lane, dir);
                     break;
                 default:
-                    _trafficCollection.Add(new Car(pos.X, pos.Y, lane, dir, CarModel.Sedan));
+                    vehicle = new Car(0, 0, lane, dir, CarModel.Sedan);
                     break;
             }
+
+            RoadLayout.PlaceInQueue(vehicle, queueIndex);
+            _trafficCollection.Add(vehicle);
 
             pictureBoxCanvas.Invalidate();
         }
