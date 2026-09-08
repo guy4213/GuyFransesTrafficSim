@@ -18,7 +18,7 @@ namespace TrafficSimulator
 
             foreach (var obj in objectsInTargetLane)
             {
-                if (obj == this) continue;
+                if (obj == this || obj is BusStation) continue;
 
                 if (Math.Abs(RoadLayout.ForwardDistance(this, obj)) < safetyBuffer)
                 {

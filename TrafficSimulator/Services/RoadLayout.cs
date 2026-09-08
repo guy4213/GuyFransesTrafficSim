@@ -11,6 +11,7 @@ namespace TrafficSimulator
         public const int CenterY = CanvasHeight / 2;
         public const int RoadWidth = 160;
         public const int LanesPerDirection = 2;
+        public const int RightLane = 0;
         public const int LaneWidth = RoadWidth / 2 / LanesPerDirection;
         private const int DespawnMargin = 80;
         private const int QueueGap = 90;
@@ -72,11 +73,11 @@ namespace TrafficSimulator
                 case Direction.Right:
                     return new System.Drawing.Point(
                         CenterX + RoadWidth / 2 + distanceAfterIntersection,
-                        CenterY - RoadWidth / 2 - CurbOffset);
+                        CenterY + RoadWidth / 2 + CurbOffset);
                 case Direction.Left:
                     return new System.Drawing.Point(
                         CenterX - RoadWidth / 2 - distanceAfterIntersection,
-                        CenterY + RoadWidth / 2 + CurbOffset);
+                        CenterY - RoadWidth / 2 - CurbOffset);
                 case Direction.Down:
                     return new System.Drawing.Point(
                         CenterX - RoadWidth / 2 - CurbOffset,

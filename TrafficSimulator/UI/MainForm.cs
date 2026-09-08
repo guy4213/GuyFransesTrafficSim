@@ -47,19 +47,19 @@ namespace TrafficSimulator
         {
             foreach (Direction dir in RoadDirections)
             {
-                Car car = new Car(0, 0, 0, dir, CarModel.Sedan);
+                Car car = new Car(0, 0, RoadLayout.RightLane, dir, CarModel.Sedan);
                 RoadLayout.PlaceInQueue(car, 0);
                 _trafficCollection.Add(car);
             }
 
-            Point busStop1 = RoadLayout.GetRoadsideStaticPosition(Direction.Right, 1, 90);
-            _trafficCollection.Add(new BusStation(busStop1.X, busStop1.Y, 1, Direction.Right));
+            Point busStop1 = RoadLayout.GetRoadsideStaticPosition(Direction.Right, RoadLayout.RightLane, 90);
+            _trafficCollection.Add(new BusStation(busStop1.X, busStop1.Y, RoadLayout.RightLane, Direction.Right));
 
-            Point busStop2 = RoadLayout.GetRoadsideStaticPosition(Direction.Down, 1, 90);
-            _trafficCollection.Add(new BusStation(busStop2.X, busStop2.Y, 1, Direction.Down));
+            Point busStop2 = RoadLayout.GetRoadsideStaticPosition(Direction.Down, RoadLayout.RightLane, 90);
+            _trafficCollection.Add(new BusStation(busStop2.X, busStop2.Y, RoadLayout.RightLane, Direction.Down));
 
-            Bus bus = new Bus(0, 0, 1, Direction.Right);
-            RoadLayout.PlaceInQueue(bus, 0);
+            Bus bus = new Bus(0, 0, RoadLayout.RightLane, Direction.Right);
+            RoadLayout.PlaceInQueue(bus, 1);
             _trafficCollection.Add(bus);
         }
 
@@ -318,8 +318,12 @@ namespace TrafficSimulator
 
                 if (type == "BusStation")
                 {
-                    Point stationPos = RoadLayout.GetRoadsideStaticPosition(dir, lane, offset);
-                    _trafficCollection.Add(new BusStation(stationPos.X, stationPos.Y, lane, dir));
+                    Point stationPos = RoadLayout.GetRoadsideStaticPosition(dir, RoadLayout.RightLane, offset);
+                    _trafficCollection.Add(new BusStation(
+                        stationPos.X,
+                        stationPos.Y,
+                        RoadLayout.RightLane,
+                        dir));
                 }
                 else
                 {

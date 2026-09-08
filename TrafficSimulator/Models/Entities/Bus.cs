@@ -105,6 +105,15 @@ namespace TrafficSimulator
                 return;
             }
 
+            EvaluateSurroundings(all);
+
+            // Lane 0 is the right-hand lane in every direction. A bus that was
+            // placed in the left lane returns right as soon as traffic allows it.
+            if (ActualSpeed > 0 && Lane != RoadLayout.RightLane)
+            {
+                AttemptLaneChange(all);
+            }
+
             BusStation targetStation = GetNextStationToStop(all);
             if (targetStation != null)
             {
@@ -116,7 +125,6 @@ namespace TrafficSimulator
                 return;
             }
 
-            EvaluateSurroundings(all);
             RoadLayout.Advance(this, ActualSpeed);
         }
     }
