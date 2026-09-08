@@ -70,8 +70,8 @@ namespace TrafficSimulator
                 g.DrawPath(Pens.Black, path);
             }
 
+            Brush pedestrianBrush = isNight ? Brushes.LightGreen : Brushes.Green;
             using (Brush windowBrush = new SolidBrush(Color.FromArgb(150, 190, 220, 235)))
-            using (Brush headBrush = new SolidBrush(Color.FromArgb(80, 55, 40)))
             {
                 float winW = Width * 0.12f;
                 float gap = Width * 0.05f;
@@ -85,13 +85,15 @@ namespace TrafficSimulator
                     g.FillRectangle(windowBrush, winX, winY, winW, winH);
 
                     // Riders peek through the windows so the bus visibly fills up
-                    // as passengers board, even while it is still driving.
+                    // as passengers board, even while it is still driving. Drawn
+                    // the same way as a walking Pedestrian (green circle).
                     for (int slot = 0; slot < 2 && headsShown < headsToShow; slot++)
                     {
                         float headSize = winW * 0.4f;
                         float headX = winX + (slot == 0 ? winW * 0.1f : winW * 0.5f);
                         float headY = winY + winH * 0.15f;
-                        g.FillEllipse(headBrush, headX, headY, headSize, headSize);
+                        g.FillEllipse(pedestrianBrush, headX, headY, headSize, headSize);
+                        g.DrawEllipse(Pens.Black, headX, headY, headSize, headSize);
                         headsShown++;
                     }
                 }

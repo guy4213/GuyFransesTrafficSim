@@ -38,21 +38,20 @@ namespace TrafficSimulator
             g.DrawRectangle(Pens.Black, X, Y, Width, Height);
 
             // Waiting riders stand beside the shelter so the queue is visible,
-            // not just a number - it shrinks as a bus boards them.
+            // not just a number - it shrinks as a bus boards them. Drawn the
+            // same way as a walking Pedestrian (green circle) for consistency.
             const int maxShown = 6;
+            const int dotSize = 10;
             int shown = Math.Min(WaitingPassengers, maxShown);
-            using (Brush shirtBrush = new SolidBrush(Color.FromArgb(60, 90, 160)))
-            using (Brush headBrush = new SolidBrush(Color.FromArgb(240, 200, 160)))
+            Brush pedestrianBrush = isNight ? Brushes.LightGreen : Brushes.Green;
+            for (int i = 0; i < shown; i++)
             {
-                for (int i = 0; i < shown; i++)
-                {
-                    int col = i % 3;
-                    int row = i / 3;
-                    int px = X + 2 + col * 12;
-                    int py = Y + Height + 3 + row * 13;
-                    g.FillRectangle(shirtBrush, px, py + 4, 7, 8);
-                    g.FillEllipse(headBrush, px + 1, py, 5, 5);
-                }
+                int col = i % 3;
+                int row = i / 3;
+                int px = X + 2 + col * 13;
+                int py = Y + Height + 3 + row * 13;
+                g.FillEllipse(pedestrianBrush, px, py, dotSize, dotSize);
+                g.DrawEllipse(Pens.Black, px, py, dotSize, dotSize);
             }
 
             // הצגת כמות הנוסעים המחכים מעל התחנה
