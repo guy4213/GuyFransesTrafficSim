@@ -61,6 +61,46 @@ namespace TrafficSimulator
             Bus bus = new Bus(0, 0, RoadLayout.RightLane, Direction.Right);
             RoadLayout.PlaceInQueue(bus, 1);
             _trafficCollection.Add(bus);
+
+            Bus southboundBus = new Bus(0, 0, RoadLayout.RightLane, Direction.Down);
+            RoadLayout.PlaceInQueue(southboundBus, 1);
+            _trafficCollection.Add(southboundBus);
+
+            Bicycle bicycle = new Bicycle(0, 0, 1, Direction.Down);
+            RoadLayout.PlaceInQueue(bicycle, 0);
+            _trafficCollection.Add(bicycle);
+
+            EmergencyVehicle emergency = new EmergencyVehicle(0, 0, 1, Direction.Left);
+            RoadLayout.PlaceInQueue(emergency, 0);
+            _trafficCollection.Add(emergency);
+
+            RoadHazard hazard = new RoadHazard(0, 0, 1, Direction.Up);
+            RoadLayout.PlaceInQueue(hazard, 1);
+            _trafficCollection.Add(hazard);
+
+            // Crosswalk users start clear of the light housings.
+            Point westCrosswalk = RoadLayout.GetCrosswalkSpawn(Direction.Right);
+            _trafficCollection.Add(new Pedestrian(
+                westCrosswalk.X,
+                westCrosswalk.Y,
+                0,
+                Direction.Right));
+
+            Point northCrosswalk = RoadLayout.GetCrosswalkSpawn(Direction.Down);
+            _trafficCollection.Add(new Pedestrian(
+                northCrosswalk.X,
+                northCrosswalk.Y,
+                0,
+                Direction.Down));
+
+            // Sidewalk users make the scene feel continuous: two approach and
+            // join a crossing, while two continue out of the viewport.
+            _trafficCollection.Add(Pedestrian.CreateSidewalkWalkerTowardsCrosswalk(
+                90, 135, Direction.Right, Direction.Right, 2f));
+            _trafficCollection.Add(Pedestrian.CreateSidewalkWalkerTowardsCrosswalk(
+                505, 45, Direction.Down, Direction.Left, 2f));
+            _trafficCollection.Add(Pedestrian.CreateSidewalkWalker(175, 350, Direction.Left, 2f));
+            _trafficCollection.Add(Pedestrian.CreateSidewalkWalker(255, 95, Direction.Up, 2f));
         }
 
         private void SimTimer_Tick(object sender, EventArgs e)
@@ -129,8 +169,10 @@ namespace TrafficSimulator
             var objects = _trafficCollection.GetAllObjects();
             for (int i = objects.Count - 1; i >= 0; i--)
             {
-                bool gone = objects[i] is Pedestrian
-                    ? RoadLayout.IsPedestrianDoneCrossing(objects[i])
+                bool gone = objects[i] is Pedestrian pedestrian
+                    ? pedestrian.WalksOnSidewalk
+                        ? RoadLayout.IsOutOfBounds(pedestrian)
+                        : RoadLayout.IsPedestrianDoneCrossing(pedestrian)
                     : RoadLayout.IsOutOfBounds(objects[i]);
 
                 if (gone)
@@ -408,6 +450,7 @@ namespace TrafficSimulator
                 {
                     try
                     {
+                        _trafficCollection.IsNightMode = _isNight;
                         SaveLoadManager.Save(_trafficCollection, sfd.FileName);
                         MessageBox.Show("הסימולציה נשמרה בהצלחה!", "שמירה", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
@@ -446,6 +489,8 @@ namespace TrafficSimulator
                             _phaseTicks = 0;
                             comboBoxStartLight.SelectedIndex = loadedLightIndex;
                         }
+
+                        SetNightMode(loadedCollection.IsNightMode);
 
                         pictureBoxCanvas.Invalidate();
                         MessageBox.Show("הסימולציה נטענה בהצלחה!", "טעינה", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -551,7 +596,12 @@ namespace TrafficSimulator
 
         public void ToggleNightMode()
         {
-            _isNight = !_isNight;
+            SetNightMode(!_isNight);
+        }
+
+        private void SetNightMode(bool isNight)
+        {
+            _isNight = isNight;
             buttonToggleNight.Text = _isNight ? "☀ Day" : "☾ Night";
             pictureBoxCanvas.Invalidate();
         }

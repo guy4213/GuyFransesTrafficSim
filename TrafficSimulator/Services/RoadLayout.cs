@@ -19,7 +19,7 @@ namespace TrafficSimulator
         private const int CrosswalkOffset = 26;
         private const int CrosswalkHalfThickness = 9;
         private const int VehicleStopGap = 10;
-        private const int SidewalkOffset = 30;
+        private const int PedestrianSize = 14;
 
         public static bool IsHorizontal(Direction dir)
         {
@@ -95,23 +95,41 @@ namespace TrafficSimulator
         {
             if (IsHorizontal(road))
             {
-                int x = road == Direction.Right ? CenterX - RoadWidth / 2 - CrosswalkOffset : CenterX + RoadWidth / 2 + CrosswalkOffset;
-                int y = CenterY - RoadWidth / 2 - SidewalkOffset;
+                int crosswalkX = road == Direction.Right
+                    ? CenterX - RoadWidth / 2 - CrosswalkOffset
+                    : CenterX + RoadWidth / 2 + CrosswalkOffset;
+
+                // The traffic lights stand beside these crosswalks. Start on the
+                // clear side of the stripes so the pedestrian never overlaps them.
+                int x = road == Direction.Right
+                    ? crosswalkX - PedestrianSize
+                    : crosswalkX + PedestrianSize - 2;
+                int y = CenterY - RoadWidth / 2 - PedestrianSize;
                 return new System.Drawing.Point(x, y);
             }
             else
             {
-                int y = road == Direction.Down ? CenterY - RoadWidth / 2 - CrosswalkOffset : CenterY + RoadWidth / 2 + CrosswalkOffset;
-                int x = CenterX - RoadWidth / 2 - SidewalkOffset;
+                int crosswalkY = road == Direction.Down
+                    ? CenterY - RoadWidth / 2 - CrosswalkOffset
+                    : CenterY + RoadWidth / 2 + CrosswalkOffset;
+
+                // Start exactly at the road edge, beyond the nearby light housing.
+                int y = crosswalkY - PedestrianSize / 2;
+                int x = CenterX - RoadWidth / 2;
                 return new System.Drawing.Point(x, y);
             }
         }
 
         public static bool IsPedestrianDoneCrossing(TrafficObject obj)
         {
-            int limit = RoadWidth / 2 + SidewalkOffset + 20;
-            if (obj.Direction == Direction.Down) return obj.Y > CenterY + limit;
-            return obj.X > CenterX + limit; // Direction.Right
+            switch (obj.Direction)
+            {
+                case Direction.Right: return obj.X >= CenterX + RoadWidth / 2;
+                case Direction.Left: return obj.X + obj.Width <= CenterX - RoadWidth / 2;
+                case Direction.Down: return obj.Y >= CenterY + RoadWidth / 2;
+                case Direction.Up: return obj.Y + obj.Height <= CenterY - RoadWidth / 2;
+                default: return false;
+            }
         }
 
         public static void PlaceInQueue(TrafficObject obj, int queueIndex)

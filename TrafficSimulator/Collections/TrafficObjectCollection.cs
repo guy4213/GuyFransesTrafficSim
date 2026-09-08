@@ -10,6 +10,7 @@ namespace TrafficSimulator
         private List<TrafficObject> _items = new List<TrafficObject>();
 
         public Direction ActiveGreenDirection { get; set; } = Direction.Down;
+        public bool IsNightMode { get; set; }
 
         public bool HasActiveEmergency
         {
@@ -17,7 +18,8 @@ namespace TrafficSimulator
             {
                 for (int i = 0; i < _items.Count; i++)
                 {
-                    if (_items[i] is EmergencyVehicle) return true;
+                    if (_items[i] is EmergencyVehicle emergency && emergency.SirenOn)
+                        return true;
                 }
                 return false;
             }
