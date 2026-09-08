@@ -311,11 +311,11 @@ namespace TrafficSimulator
         private void DrawTrafficLightFor(Graphics g, Direction dir, int anchorX, int anchorY)
         {
             int x = anchorX - 11;
-            int y = anchorY - 12;
+            int y = anchorY - 29;
 
             using (Brush housing = new SolidBrush(Color.FromArgb(17, 18, 20)))
             {
-                g.FillRectangle(housing, x, y, 22, 24);
+                g.FillRectangle(housing, x, y, 22, 58);
             }
 
             bool isActiveRoad = dir == RoadDirections[_lightCycleIndex];
@@ -331,7 +331,7 @@ namespace TrafficSimulator
                 Color c = (i == activeIdx) ? colors[i] : Color.FromArgb(60, 255, 255, 255);
                 using (Brush b = new SolidBrush(c))
                 {
-                    g.FillEllipse(b, x + 8, y + 2 + i * 7, 6, 6);
+                    g.FillEllipse(b, x + 4, y + 4 + i * 18, 13, 13);
                 }
             }
         }

@@ -58,7 +58,24 @@ namespace TrafficSimulator
                 return false;
             }
 
+            if (IsPedestrianOnMyCrosswalk(all))
+            {
+                return true;
+            }
+
             return all.IsAmber || all.ActiveGreenDirection != Direction;
+        }
+
+        // A pedestrian using this direction's crosswalk is walking straight through
+        // this lane's path, so no vehicle may enter until they have fully crossed.
+        private bool IsPedestrianOnMyCrosswalk(TrafficObjectCollection all)
+        {
+            foreach (var obj in all.GetAllObjects())
+            {
+                if (obj is Pedestrian pedestrian && pedestrian.IsCrossing && pedestrian.Direction == Direction)
+                    return true;
+            }
+            return false;
         }
 
         public override float EvaluateSurroundings(TrafficObjectCollection all)

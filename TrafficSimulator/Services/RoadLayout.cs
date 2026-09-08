@@ -38,7 +38,7 @@ namespace TrafficSimulator
                 int py = Math.Clamp(y, minY, maxY);
                 // Candidate edges include the light housing so projection cannot land on it.
                 Rectangle light = new Rectangle(left ? CenterX - RoadWidth / 2 - 25 : CenterX + RoadWidth / 2 + 3,
-                    top ? CenterY - RoadWidth / 2 - 26 : CenterY + RoadWidth / 2 + 2, 22, 24);
+                    top ? CenterY - RoadWidth / 2 - 43 : CenterY + RoadWidth / 2 - 15, 22, 58);
                 foreach (int candidateX in new[] { px, Math.Clamp(light.Left - width - 2, minX, maxX), Math.Clamp(light.Right + 2, minX, maxX) })
                 foreach (int candidateY in new[] { py, Math.Clamp(light.Top - height - 2, minY, maxY), Math.Clamp(light.Bottom + 2, minY, maxY) })
                 {
