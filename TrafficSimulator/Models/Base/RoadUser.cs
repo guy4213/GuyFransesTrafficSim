@@ -62,6 +62,8 @@ namespace TrafficSimulator
 
             foreach (var obj in objectsInLane)
             {
+                if (obj is BusStation) continue;
+
                 int diff = RoadLayout.ForwardDistance(this, obj);
                 if (obj != this && diff > 0 && diff < 100 && minDistance > diff)
                 {
