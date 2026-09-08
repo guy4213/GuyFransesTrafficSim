@@ -11,6 +11,12 @@ namespace TrafficSimulator
 
         public Direction ActiveGreenDirection { get; set; } = Direction.Down;
         public bool IsNightMode { get; set; }
+        [field: System.Runtime.Serialization.OptionalField]
+        public bool IsAmber { get; set; }
+        [field: System.Runtime.Serialization.OptionalField]
+        public int PhaseTicks { get; set; }
+        [System.Runtime.Serialization.OptionalField]
+        private double _totalDistance;
 
         public bool HasActiveEmergency
         {
@@ -78,6 +84,7 @@ namespace TrafficSimulator
         public void Clear()
         {
             _items.Clear();
+            _totalDistance = 0;
         }
 
         public void DrawAll(Graphics g, bool isNightMode)
@@ -87,14 +94,35 @@ namespace TrafficSimulator
 
         }
 
-        public void UpdateAll()
+        public void UpdateAll(TrafficObject draggedObject = null)
         {
-           _items.ForEach(item => item.Move(this));
+            foreach (var item in _items)
+            {
+                if (item == draggedObject) continue;
+                int x = item.X, y = item.Y;
+                item.Move(this);
+                if (item is RoadUser && !(item is Pedestrian))
+                {
+                    // Lane changes are lateral; count forward travel only.
+                    _totalDistance += RoadLayout.IsHorizontal(item.Direction) ? Math.Abs(item.X - x) : Math.Abs(item.Y - y);
+                }
+            }
+        }
+
+        public void RestoreFrom(TrafficObjectCollection saved)
+        {
+            // Preserve entity references (including a bus's last serviced station).
+            _items = new List<TrafficObject>(saved._items);
+            ActiveGreenDirection = saved.ActiveGreenDirection;
+            IsNightMode = saved.IsNightMode;
+            IsAmber = saved.IsAmber;
+            PhaseTicks = saved.PhaseTicks;
+            _totalDistance = saved._totalDistance;
         }
 
         public float GetCongestionRate()
         {
-            var roadUsers = _items.FindAll(item => item is RoadUser);
+            var roadUsers = _items.FindAll(item => item is RoadUser && !(item is Pedestrian));
             if (roadUsers.Count == 0) return 0f;
 
             int slowedCount = roadUsers.FindAll(item => item.ActualSpeed < item.DesiredSpeed).Count;
@@ -103,15 +131,7 @@ namespace TrafficSimulator
 
         public double GetTotalMileage()
         {
-            double total = 0;
-            foreach (var item in _items)
-            {
-                if (item is RoadUser)
-                {
-                    total += item.X;
-                }
-            }
-            return total;
+            return _totalDistance;
         }
         public List<TrafficObject> GetObjectsInLane(Direction direction, int lane)
         {

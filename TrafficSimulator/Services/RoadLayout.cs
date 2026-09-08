@@ -16,11 +16,49 @@ namespace TrafficSimulator
         private const int DespawnMargin = 80;
         private const int QueueGap = 90;
         private const int CurbOffset = 26;
-        private const int CrosswalkOffset = 26;
+        private const int CrosswalkOffset = 40;
         private const int CrosswalkHalfThickness = 9;
         private const int StopLineToCrosswalkGap = 10;
         private const int VehicleStopGap = 8;
         private const int PedestrianSize = 14;
+
+        // Full object bounds, not just its centre, must fit in one sidewalk corner.
+        public static Point NearestSidewalkPoint(int x, int y, int width, int height)
+        {
+            Point best = Point.Empty;
+            double bestDistance = double.MaxValue;
+            foreach (bool left in new[] { true, false })
+            foreach (bool top in new[] { true, false })
+            {
+                int minX = left ? 0 : CenterX + RoadWidth / 2 + 2;
+                int maxX = left ? CenterX - RoadWidth / 2 - width - 2 : CanvasWidth - width;
+                int minY = top ? 0 : CenterY + RoadWidth / 2 + 2;
+                int maxY = top ? CenterY - RoadWidth / 2 - height - 2 : CanvasHeight - height;
+                int px = Math.Clamp(x, minX, maxX);
+                int py = Math.Clamp(y, minY, maxY);
+                // Candidate edges include the light housing so projection cannot land on it.
+                Rectangle light = new Rectangle(left ? CenterX - RoadWidth / 2 - 25 : CenterX + RoadWidth / 2 + 3,
+                    top ? CenterY - RoadWidth / 2 - 26 : CenterY + RoadWidth / 2 + 2, 22, 24);
+                foreach (int candidateX in new[] { px, Math.Clamp(light.Left - width - 2, minX, maxX), Math.Clamp(light.Right + 2, minX, maxX) })
+                foreach (int candidateY in new[] { py, Math.Clamp(light.Top - height - 2, minY, maxY), Math.Clamp(light.Bottom + 2, minY, maxY) })
+                {
+                    if (new Rectangle(candidateX, candidateY, width, height).IntersectsWith(light)) continue;
+                    double distance = (double)(candidateX - x) * (candidateX - x) + (double)(candidateY - y) * (candidateY - y);
+                    if (distance < bestDistance)
+                    {
+                        bestDistance = distance;
+                        best = new Point(candidateX, candidateY);
+                    }
+                }
+            }
+            return best;
+        }
+
+        public static bool IsOnRoad(Rectangle bounds)
+        {
+            return bounds.IntersectsWith(new Rectangle(0, CenterY - RoadWidth / 2, CanvasWidth, RoadWidth)) ||
+                bounds.IntersectsWith(new Rectangle(CenterX - RoadWidth / 2, 0, RoadWidth, CanvasHeight));
+        }
 
         public static bool IsHorizontal(Direction dir)
         {
@@ -67,6 +105,9 @@ namespace TrafficSimulator
         // placing it in the queue approaching the light.
         public static System.Drawing.Point GetRoadsideStaticPosition(Direction dir, int lane, int distanceAfterIntersection)
         {
+            int available = IsHorizontal(dir) ? CanvasWidth / 2 - RoadWidth / 2 - 40
+                : CanvasHeight / 2 - RoadWidth / 2 - 40;
+            distanceAfterIntersection = Math.Clamp(distanceAfterIntersection, 60, available);
             switch (dir)
             {
                 case Direction.Right:
@@ -76,10 +117,10 @@ namespace TrafficSimulator
                 case Direction.Left:
                     return new System.Drawing.Point(
                         CenterX - RoadWidth / 2 - distanceAfterIntersection,
-                        CenterY - RoadWidth / 2 - CurbOffset);
+                        CenterY - RoadWidth / 2 - CurbOffset - 30);
                 case Direction.Down:
                     return new System.Drawing.Point(
-                        CenterX - RoadWidth / 2 - CurbOffset,
+                        CenterX - RoadWidth / 2 - CurbOffset - 40,
                         CenterY + RoadWidth / 2 + distanceAfterIntersection);
                 default: // Up
                     return new System.Drawing.Point(
@@ -114,7 +155,7 @@ namespace TrafficSimulator
 
                 // Start exactly at the road edge, beyond the nearby light housing.
                 int y = crosswalkY - PedestrianSize / 2;
-                int x = CenterX - RoadWidth / 2;
+                int x = CenterX - RoadWidth / 2 - PedestrianSize - 2;
                 return new System.Drawing.Point(x, y);
             }
         }
@@ -212,6 +253,12 @@ namespace TrafficSimulator
 
         public static bool IsOutOfBounds(TrafficObject obj)
         {
+            if (obj is Pedestrian)
+            {
+                Rectangle bounds = obj.GetBounds();
+                return bounds.Right <= 0 || bounds.Left >= CanvasWidth ||
+                    bounds.Bottom <= 0 || bounds.Top >= CanvasHeight;
+            }
             switch (obj.Direction)
             {
                 case Direction.Right: return obj.X > CanvasWidth + DespawnMargin;

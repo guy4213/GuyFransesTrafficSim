@@ -44,7 +44,7 @@ namespace TrafficSimulator
                         _lastServicedStation = null;
                     }
 
-                    if (diff > 0 && diff < 50 && station != _lastServicedStation)
+                    if (diff > 0 && diff <= Math.Max(50, ActualSpeed) && station != _lastServicedStation)
                     {
                         return station;
                     }
@@ -109,7 +109,7 @@ namespace TrafficSimulator
 
             // Lane 0 is the right-hand lane in every direction. A bus that was
             // placed in the left lane returns right as soon as traffic allows it.
-            if (ActualSpeed > 0 && Lane != RoadLayout.RightLane)
+            if (Lane != RoadLayout.RightLane || ActualSpeed < DesiredSpeed)
             {
                 AttemptLaneChange(all);
             }

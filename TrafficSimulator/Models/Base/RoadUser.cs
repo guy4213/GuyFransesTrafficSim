@@ -7,6 +7,13 @@ namespace TrafficSimulator
     {
         public bool IsOvertaking;
 
+        public override System.Drawing.Rectangle GetBounds()
+        {
+            if (this is Pedestrian || RoadLayout.IsHorizontal(Direction)) return base.GetBounds();
+            return new System.Drawing.Rectangle(X + (Width - Height) / 2,
+                Y + (Height - Width) / 2, Height, Width);
+        }
+
         protected RoadUser(int x, int y, int lane, Direction dir, float desiredSpeed)
             : base(x, y, lane, dir, desiredSpeed)
         {
@@ -14,30 +21,29 @@ namespace TrafficSimulator
 
         protected bool IsLaneClear(TrafficObjectCollection all, int targetLane)
         {
-            var objectsInTargetLane = all.GetObjectsInLane(Direction, targetLane);
-            int safetyBuffer = 100;
-
-            foreach (var obj in objectsInTargetLane)
-            {
-                if (obj == this || obj is BusStation) continue;
-
-                if (Math.Abs(RoadLayout.ForwardDistance(this, obj)) < safetyBuffer)
-                {
-                    return false;
-                }
-            }
+            var current = GetBounds();
+            var target = current;
+            int shift = RoadLayout.GetLaneCenter(Direction, targetLane) - RoadLayout.GetLaneCenter(Direction, Lane);
+            if (RoadLayout.IsHorizontal(Direction)) target.Offset(0, shift);
+            else target.Offset(shift, 0);
+            var corridor = System.Drawing.Rectangle.Union(current, target);
+            corridor.Inflate(8, 8);
+            foreach (var obj in all.GetAllObjects())
+                if (obj != this && corridor.IntersectsWith(obj.GetBounds())) return false;
 
             return true;
         }
 
         public void AttemptLaneChange(TrafficObjectCollection all)
         {
+            if (this is Pedestrian) return;
             int targetLane = Lane == 0 ? 1 : 0;
 
             if (IsLaneClear(all, targetLane))
             {
                 RoadLayout.SetLane(this, targetLane);
                 IsOvertaking = true;
+                EvaluateSurroundings(all);
             }
         }
         protected bool ShouldStopAtIntersection(TrafficObjectCollection all)
@@ -52,28 +58,31 @@ namespace TrafficSimulator
                 return false;
             }
 
-            return all.ActiveGreenDirection != Direction;
+            return all.IsAmber || all.ActiveGreenDirection != Direction;
         }
 
         public override float EvaluateSurroundings(TrafficObjectCollection all)
         {
-            TrafficObject closestAhead = null;
-            int minDistance = int.MaxValue;
-            var objectsInLane = all.GetObjectsInLane(Direction, this.Lane);
-
-            foreach (var obj in objectsInLane)
+            ActualSpeed = Math.Max(0, DesiredSpeed);
+            var bounds = GetBounds();
+            foreach (var obj in all.GetAllObjects())
             {
-                if (obj is BusStation) continue;
-
-                int diff = RoadLayout.ForwardDistance(this, obj);
-                if (obj != this && diff > 0 && diff < 100 && minDistance > diff)
+                if (obj == this) continue;
+                var other = obj.GetBounds();
+                bool horizontal = RoadLayout.IsHorizontal(Direction);
+                bool overlapsAcross = horizontal ? bounds.Top < other.Bottom && bounds.Bottom > other.Top
+                    : bounds.Left < other.Right && bounds.Right > other.Left;
+                if (!overlapsAcross) continue;
+                int gap;
+                switch (Direction)
                 {
-                    minDistance = diff;
-                    closestAhead = obj;
+                    case Direction.Right: if (other.Right <= bounds.Left) continue; gap = other.Left - bounds.Right; break;
+                    case Direction.Left: if (other.Left >= bounds.Right) continue; gap = bounds.Left - other.Right; break;
+                    case Direction.Down: if (other.Bottom <= bounds.Top) continue; gap = other.Top - bounds.Bottom; break;
+                    default: if (other.Top >= bounds.Bottom) continue; gap = bounds.Top - other.Bottom; break;
                 }
+                ActualSpeed = Math.Min(ActualSpeed, Math.Max(0, gap - 8));
             }
-
-            ActualSpeed = closestAhead != null ? closestAhead.ActualSpeed : DesiredSpeed;
 
             return ActualSpeed;
         }

@@ -23,13 +23,14 @@ namespace TrafficSimulator
 
             foreach (var obj in objectsAhead)
             {
-                if (obj is RoadUser vehicle && vehicle != this)
+                if (obj is RoadUser vehicle && !(vehicle is Pedestrian) && vehicle != this)
                 {
                     int diff = RoadLayout.ForwardDistance(this, vehicle);
                     if (diff > 0 && diff < 150)
                     {
                         hasVehicleAhead = true;
-                        vehicle.AttemptLaneChange(all);
+                        if (vehicle.Lane != RoadLayout.RightLane)
+                            vehicle.AttemptLaneChange(all);
                     }
                 }
             }
@@ -67,6 +68,11 @@ namespace TrafficSimulator
         public override void Move(TrafficObjectCollection all)
         {
             TriggerYieldOnNearbyVehicles(all);
+            if (!SirenOn && ShouldStopAtIntersection(all))
+            {
+                ActualSpeed = 0;
+                return;
+            }
             EvaluateSurroundings(all);
             RoadLayout.Advance(this, ActualSpeed);
 

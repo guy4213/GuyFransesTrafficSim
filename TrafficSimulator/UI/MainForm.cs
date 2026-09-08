@@ -29,6 +29,7 @@ namespace TrafficSimulator
 
         private TrafficObject _draggedObject;
         private Point _dragGrabOffset;
+        private bool _restoringState;
 
         public MainForm()
         {
@@ -41,6 +42,8 @@ namespace TrafficSimulator
             _simTimer.Interval = 100;
             _simTimer.Tick += SimTimer_Tick;
             _simTimer.Start();
+            FormClosed += (sender, e) => _simTimer.Dispose();
+            UpdateAnalyticsLabel();
         }
 
         private void SeedInitialTraffic()
@@ -62,10 +65,6 @@ namespace TrafficSimulator
             RoadLayout.PlaceInQueue(bus, 1);
             _trafficCollection.Add(bus);
 
-            Bus southboundBus = new Bus(0, 0, RoadLayout.RightLane, Direction.Down);
-            RoadLayout.PlaceInQueue(southboundBus, 1);
-            _trafficCollection.Add(southboundBus);
-
             Bicycle bicycle = new Bicycle(0, 0, 1, Direction.Down);
             RoadLayout.PlaceInQueue(bicycle, 0);
             _trafficCollection.Add(bicycle);
@@ -75,7 +74,7 @@ namespace TrafficSimulator
             _trafficCollection.Add(emergency);
 
             RoadHazard hazard = new RoadHazard(0, 0, 1, Direction.Up);
-            RoadLayout.PlaceInQueue(hazard, 1);
+            RoadLayout.PlaceInQueue(hazard, 0);
             _trafficCollection.Add(hazard);
 
             // Crosswalk users start clear of the light housings.
@@ -107,11 +106,7 @@ namespace TrafficSimulator
         {
             if (_isRunning)
             {
-                var objects = _trafficCollection.GetAllObjects();
-                for (int i = 0; i < objects.Count; i++)
-                {
-                    objects[i].Move(_trafficCollection);
-                }
+                _trafficCollection.UpdateAll(_draggedObject);
 
                 RemoveOutOfBoundsObjects();
                 AdvanceTrafficLight();
@@ -137,6 +132,8 @@ namespace TrafficSimulator
                 _phaseTicks = 0;
                 _trafficCollection.ActiveGreenDirection = RoadDirections[_lightCycleIndex];
             }
+            _trafficCollection.IsAmber = _currentPhase == LightPhase.Amber;
+            _trafficCollection.PhaseTicks = _phaseTicks;
         }
 
         private void ApplyStartLightSelection()
@@ -145,12 +142,14 @@ namespace TrafficSimulator
             _currentPhase = LightPhase.Green;
             _phaseTicks = 0;
             _trafficCollection.ActiveGreenDirection = RoadDirections[_lightCycleIndex];
+            _trafficCollection.IsAmber = false;
+            _trafficCollection.PhaseTicks = 0;
             pictureBoxCanvas.Invalidate();
         }
 
         private void OnStartLightChanged(object sender, EventArgs e)
         {
-            if (!_isRunning)
+            if (!_isRunning && !_restoringState)
             {
                 ApplyStartLightSelection();
             }
@@ -161,7 +160,7 @@ namespace TrafficSimulator
             float congestion = _trafficCollection.GetCongestionRate();
             double mileage = _trafficCollection.GetTotalMileage();
             string emergencyNote = _trafficCollection.HasActiveEmergency ? "   🚨 EMERGENCY OVERRIDE" : "";
-            labelAnalytics.Text = $"Congestion: {congestion:F0}%   Total Mileage: {mileage:F0}{emergencyNote}";
+            labelAnalytics.Text = $"Congestion: {congestion:F0}%   Distance: {mileage:F0} px{emergencyNote}";
         }
 
         private void RemoveOutOfBoundsObjects()
@@ -169,11 +168,7 @@ namespace TrafficSimulator
             var objects = _trafficCollection.GetAllObjects();
             for (int i = objects.Count - 1; i >= 0; i--)
             {
-                bool gone = objects[i] is Pedestrian pedestrian
-                    ? pedestrian.WalksOnSidewalk
-                        ? RoadLayout.IsOutOfBounds(pedestrian)
-                        : RoadLayout.IsPedestrianDoneCrossing(pedestrian)
-                    : RoadLayout.IsOutOfBounds(objects[i]);
+                bool gone = RoadLayout.IsOutOfBounds(objects[i]);
 
                 if (gone)
                 {
@@ -283,7 +278,7 @@ namespace TrafficSimulator
 
             if (RoadLayout.IsHorizontal(road))
             {
-                int x = road == Direction.Right ? cx - rw / 2 - 26 : cx + rw / 2 + 26;
+                int x = RoadLayout.GetCrosswalkCenterCoordinate(road);
                 int top = cy - rw / 2, bottom = cy + rw / 2;
                 for (int y = top + 6; y < bottom; y += 18)
                 {
@@ -292,7 +287,7 @@ namespace TrafficSimulator
             }
             else
             {
-                int y = road == Direction.Down ? cy - rw / 2 - 26 : cy + rw / 2 + 26;
+                int y = RoadLayout.GetCrosswalkCenterCoordinate(road);
                 int left = cx - rw / 2, right = cx + rw / 2;
                 for (int x = left + 6; x < right; x += 18)
                 {
@@ -316,11 +311,11 @@ namespace TrafficSimulator
         private void DrawTrafficLightFor(Graphics g, Direction dir, int anchorX, int anchorY)
         {
             int x = anchorX - 11;
-            int y = anchorY - 29;
+            int y = anchorY - 12;
 
             using (Brush housing = new SolidBrush(Color.FromArgb(17, 18, 20)))
             {
-                g.FillRectangle(housing, x, y, 22, 58);
+                g.FillRectangle(housing, x, y, 22, 24);
             }
 
             bool isActiveRoad = dir == RoadDirections[_lightCycleIndex];
@@ -336,7 +331,7 @@ namespace TrafficSimulator
                 Color c = (i == activeIdx) ? colors[i] : Color.FromArgb(60, 255, 255, 255);
                 using (Brush b = new SolidBrush(c))
                 {
-                    g.FillEllipse(b, x + 4, y + 4 + i * 18, 13, 13);
+                    g.FillEllipse(b, x + 8, y + 2 + i * 7, 6, 6);
                 }
             }
         }
@@ -356,6 +351,7 @@ namespace TrafficSimulator
             Direction dir = RoadDirections[comboBoxRoad.SelectedIndex];
             int lane = (int)numericUpDownLane.Value;
             string type = comboBoxEntityType.SelectedItem as string;
+            if (type == "Bus") lane = RoadLayout.RightLane;
 
             // Static objects are placed explicitly via Offset. Hazards are measured back
             // from the stop line; stations sit by the outgoing road after the light.
@@ -386,7 +382,20 @@ namespace TrafficSimulator
             if (type == "Pedestrian")
             {
                 Point crossPos = RoadLayout.GetCrosswalkSpawn(dir);
-                _trafficCollection.Add(new Pedestrian(crossPos.X, crossPos.Y, lane, dir));
+                Pedestrian pedestrian = new Pedestrian(crossPos.X, crossPos.Y, lane, dir);
+                // Repeated clicks get separate sidewalk positions instead of a stack.
+                bool placed = false;
+                for (int y = 0; y < RoadLayout.CanvasHeight && !placed; y += 20)
+                for (int x = 0; x < RoadLayout.CanvasWidth && !placed; x += 20)
+                {
+                    bool occupied = _trafficCollection.GetAllObjects().Exists(obj =>
+                        obj.GetBounds().IntersectsWith(pedestrian.GetBounds()));
+                    if (!occupied) { placed = true; break; }
+                    pedestrian.X = x;
+                    pedestrian.Y = y;
+                    pedestrian.PlaceOnSidewalk();
+                }
+                if (placed) _trafficCollection.Add(pedestrian);
                 pictureBoxCanvas.Invalidate();
                 return;
             }
@@ -430,6 +439,7 @@ namespace TrafficSimulator
         private void OnRunClick(object sender, EventArgs e)
         {
             _isRunning = !_isRunning;
+            comboBoxStartLight.Enabled = !_isRunning;
             buttonRun.Text = _isRunning ? "⏸ Pause" : "▶ Run";
             buttonRun.BackColor = _isRunning ? Color.FromArgb(138, 31, 31) : Color.FromArgb(47, 125, 79);
         }
@@ -441,7 +451,9 @@ namespace TrafficSimulator
 
         private void OnDeleteEntityClick(object sender, EventArgs e)
         {
+            _draggedObject = null;
             _trafficCollection.Clear();
+            UpdateAnalyticsLabel();
             pictureBoxCanvas.Invalidate();
         }
 
@@ -479,23 +491,21 @@ namespace TrafficSimulator
                     {
                         var loadedCollection = SaveLoadManager.Load(ofd.FileName);
 
-                        _trafficCollection.Clear();
-                        foreach (var obj in loadedCollection.GetAllObjects())
-                        {
-                            _trafficCollection.Add(obj);
-                        }
-
-                        _trafficCollection.ActiveGreenDirection = loadedCollection.ActiveGreenDirection;
+                        _draggedObject = null;
+                        _trafficCollection.RestoreFrom(loadedCollection);
                         int loadedLightIndex = Array.IndexOf(RoadDirections, loadedCollection.ActiveGreenDirection);
                         if (loadedLightIndex >= 0)
                         {
                             _lightCycleIndex = loadedLightIndex;
-                            _currentPhase = LightPhase.Green;
-                            _phaseTicks = 0;
+                            _currentPhase = loadedCollection.IsAmber ? LightPhase.Amber : LightPhase.Green;
+                            _phaseTicks = loadedCollection.PhaseTicks;
+                            _restoringState = true;
                             comboBoxStartLight.SelectedIndex = loadedLightIndex;
+                            _restoringState = false;
                         }
 
                         SetNightMode(loadedCollection.IsNightMode);
+                        UpdateAnalyticsLabel();
 
                         pictureBoxCanvas.Invalidate();
                         MessageBox.Show("הסימולציה נטענה בהצלחה!", "טעינה", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -545,11 +555,15 @@ namespace TrafficSimulator
 
             _draggedObject.X = e.X - _dragGrabOffset.X;
             _draggedObject.Y = e.Y - _dragGrabOffset.Y;
+            if (_draggedObject is Pedestrian pedestrian)
+                pedestrian.PlaceOnSidewalk();
             pictureBoxCanvas.Invalidate();
         }
 
         private void PictureBoxCanvas_MouseUp(object sender, MouseEventArgs e)
         {
+            if (_draggedObject is Pedestrian pedestrian)
+                pedestrian.PlaceOnSidewalk();
             if (_draggedObject != null &&
                 !(_draggedObject is Pedestrian) &&
                 !(_draggedObject is BusStation))
@@ -576,6 +590,14 @@ namespace TrafficSimulator
                 hit.Width = Math.Max(8, Math.Min(160, (int)(hit.Width * factor)));
                 hit.Height = Math.Max(6, Math.Min(120, (int)(hit.Height * factor)));
 
+                if (hit is Pedestrian pedestrian)
+                {
+                    // Keep the full body inside the 18-pixel crosswalk strip.
+                    hit.Width = Math.Min(16, hit.Width);
+                    hit.Height = Math.Min(16, hit.Height);
+                    pedestrian.PlaceOnSidewalk();
+                }
+
                 if (!(hit is Pedestrian) && !(hit is BusStation))
                 {
                     RoadLayout.CenterInLane(hit);
@@ -593,6 +615,8 @@ namespace TrafficSimulator
             int newIdx = ((idx + steps) % RoadDirections.Length + RoadDirections.Length) % RoadDirections.Length;
             obj.Direction = RoadDirections[newIdx];
 
+            if (obj is Pedestrian pedestrian) pedestrian.PlaceOnSidewalk();
+
             if (!(obj is Pedestrian) && !(obj is BusStation))
             {
                 RoadLayout.CenterInLane(obj);
@@ -607,6 +631,7 @@ namespace TrafficSimulator
         private void SetNightMode(bool isNight)
         {
             _isNight = isNight;
+            _trafficCollection.IsNightMode = isNight;
             buttonToggleNight.Text = _isNight ? "☀ Day" : "☾ Night";
             pictureBoxCanvas.Invalidate();
         }

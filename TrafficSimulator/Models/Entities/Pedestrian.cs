@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Runtime.Serialization;
 
 namespace TrafficSimulator
 {
@@ -8,158 +9,126 @@ namespace TrafficSimulator
     {
         public bool IsCrossing { get; set; }
         public bool WalksOnSidewalk { get; private set; }
+        [OptionalField] private Point _crossingStart;
+        [OptionalField] private Direction _crossingDirection;
+        [OptionalField] private bool _approaching;
+        [OptionalField] private bool _departing;
+        [OptionalField] private int _routeVersion = 1;
 
-        private Direction _conflictA;
-        private Direction _conflictB;
-        private readonly bool _joinsCrosswalk;
-        private readonly int _destinationCoordinate;
-        private readonly Direction _targetCrosswalkRoad;
-
-        // 'road' is the approach whose crosswalk this pedestrian uses (Right/Down/Left/Up
-        // = West/North/East/South) - the pedestrian actually walks perpendicular to it.
-        public Pedestrian(int x, int y, int lane, Direction road, float desiredSpeed = 15f)
-            : base(x, y, lane, RoadLayout.IsHorizontal(road) ? Direction.Down : Direction.Right, desiredSpeed)
+        [OnDeserialized]
+        private void RestoreLegacyRoute(StreamingContext context)
         {
-            Width = 14;
-            Height = 14;
-            IsCrossing = false;
-            WalksOnSidewalk = false;
-            _joinsCrosswalk = false;
-            _destinationCoordinate = 0;
-            _targetCrosswalkRoad = road;
-            ConfigureCrosswalkConflicts(road);
+            if (_routeVersion == 0)
+            {
+                PlaceOnSidewalk();
+                _routeVersion = 1;
+            }
         }
 
-        private Pedestrian(
-            int x,
-            int y,
-            Direction walkingDirection,
-            float desiredSpeed,
-            Direction? targetCrosswalkRoad)
-            : base(x, y, 0, walkingDirection, desiredSpeed)
+        public Pedestrian(int x, int y, int lane, Direction road, float desiredSpeed = 3f)
+            : base(x, y, lane, road, desiredSpeed)
         {
-            Width = 14;
-            Height = 14;
-            IsCrossing = false;
-            WalksOnSidewalk = true;
-            _joinsCrosswalk = targetCrosswalkRoad.HasValue;
-            _targetCrosswalkRoad = targetCrosswalkRoad.GetValueOrDefault();
-
-            Point target = targetCrosswalkRoad.HasValue
-                ? RoadLayout.GetCrosswalkSpawn(targetCrosswalkRoad.Value)
-                : Point.Empty;
-            _destinationCoordinate = RoadLayout.IsHorizontal(walkingDirection) ? target.X : target.Y;
-            _conflictA = Direction.Up;
-            _conflictB = Direction.Down;
+            Width = Height = 14;
+            PlaceOnSidewalk();
         }
 
-        public static Pedestrian CreateSidewalkWalker(
-            int x,
-            int y,
-            Direction walkingDirection,
-            float desiredSpeed = 2f)
+        public static Pedestrian CreateSidewalkWalker(int x, int y, Direction direction, float desiredSpeed = 2f)
         {
-            return new Pedestrian(x, y, walkingDirection, desiredSpeed, null);
+            var pedestrian = new Pedestrian(x, y, 0, direction, desiredSpeed);
+            pedestrian.Direction = direction;
+            pedestrian._approaching = false;
+            pedestrian._departing = true;
+            return pedestrian;
         }
 
         public static Pedestrian CreateSidewalkWalkerTowardsCrosswalk(
-            int x,
-            int y,
-            Direction walkingDirection,
-            Direction crosswalkRoad,
-            float desiredSpeed = 2f)
+            int x, int y, Direction walkingDirection, Direction crosswalkRoad, float desiredSpeed = 2f)
         {
-            return new Pedestrian(x, y, walkingDirection, desiredSpeed, crosswalkRoad);
+            return new Pedestrian(x, y, 0, crosswalkRoad, desiredSpeed);
         }
+
+        // Editing resets the route, never the position during a valid crossing.
+        public void PlaceOnSidewalk()
+        {
+            Point position = RoadLayout.NearestSidewalkPoint(X, Y, Width, Height);
+            X = position.X;
+            Y = position.Y;
+            IsCrossing = false;
+            WalksOnSidewalk = true;
+            _departing = false;
+            _approaching = true;
+
+            bool left = X + Width <= RoadLayout.CenterX - RoadLayout.RoadWidth / 2;
+            bool top = Y + Height <= RoadLayout.CenterY - RoadLayout.RoadWidth / 2;
+            int crossX = RoadLayout.GetCrosswalkCenterCoordinate(left ? Direction.Right : Direction.Left) - Width / 2;
+            int crossY = RoadLayout.GetCrosswalkCenterCoordinate(top ? Direction.Down : Direction.Up) - Height / 2;
+            Point verticalStart = new Point(crossX, top
+                ? RoadLayout.CenterY - RoadLayout.RoadWidth / 2 - Height - 2
+                : RoadLayout.CenterY + RoadLayout.RoadWidth / 2 + 2);
+            Point horizontalStart = new Point(left
+                ? RoadLayout.CenterX - RoadLayout.RoadWidth / 2 - Width - 2
+                : RoadLayout.CenterX + RoadLayout.RoadWidth / 2 + 2, crossY);
+            bool vertical = DistanceSquared(verticalStart) <= DistanceSquared(horizontalStart);
+            _crossingStart = vertical ? verticalStart : horizontalStart;
+            _crossingDirection = vertical ? (top ? Direction.Down : Direction.Up)
+                : (left ? Direction.Right : Direction.Left);
+        }
+
+        private double DistanceSquared(Point p) => (double)(p.X - X) * (p.X - X) + (double)(p.Y - Y) * (p.Y - Y);
 
         public override void Draw(Graphics g, bool isNight)
         {
-            Brush pedBrush = isNight ? Brushes.LightGreen : Brushes.Green;
-            g.FillEllipse(pedBrush, X, Y, Width, Height);
+            g.FillEllipse(isNight ? Brushes.LightGreen : Brushes.Green, X, Y, Width, Height);
             g.DrawEllipse(Pens.Black, X, Y, Width, Height);
         }
 
         public override void Move(TrafficObjectCollection all)
         {
-            if (WalksOnSidewalk)
+            int step = Math.Max(1, (int)DesiredSpeed);
+            ActualSpeed = step;
+            if (_approaching)
             {
-                MoveAlongSidewalk();
+                // Both legs stay inside the same sidewalk quadrant.
+                if (X != _crossingStart.X)
+                    X += Math.Sign(_crossingStart.X - X) * Math.Min(step, Math.Abs(_crossingStart.X - X));
+                else if (Y != _crossingStart.Y)
+                    Y += Math.Sign(_crossingStart.Y - Y) * Math.Min(step, Math.Abs(_crossingStart.Y - Y));
+                else
+                {
+                    _approaching = false;
+                    Direction = _crossingDirection;
+                }
                 return;
             }
 
-            bool safeToCross = all.ActiveGreenDirection != _conflictA && all.ActiveGreenDirection != _conflictB;
-            bool emergencyBlocksEntry = !IsCrossing &&
-                (all.HasMovingEmergencyVehicle || all.HasActiveEmergency);
+            if (_departing)
+            {
+                int previousX = X, previousY = Y;
+                RoadLayout.Advance(this, step);
+                if (RoadLayout.IsOnRoad(GetBounds()))
+                {
+                    X = previousX;
+                    Y = previousY;
+                    PlaceOnSidewalk();
+                }
+                return;
+            }
 
-            // Never enter in front of a moving emergency vehicle. A pedestrian
-            // already on the road keeps moving so the crossing is cleared safely.
-            if (!IsCrossing && (!safeToCross || emergencyBlocksEntry))
+            bool conflict = RoadLayout.IsHorizontal(Direction) != RoadLayout.IsHorizontal(all.ActiveGreenDirection);
+            if (!IsCrossing && (conflict || all.HasMovingEmergencyVehicle || all.HasActiveEmergency))
             {
                 ActualSpeed = 0;
-                IsCrossing = false;
                 return;
             }
 
             IsCrossing = true;
-            ActualSpeed = DesiredSpeed;
-            RoadLayout.Advance(this, ActualSpeed);
-        }
-
-        private void MoveAlongSidewalk()
-        {
-            IsCrossing = false;
-            ActualSpeed = DesiredSpeed;
-
-            if (_joinsCrosswalk && ReachedDestination())
-            {
-                JoinCrosswalk();
-                return;
-            }
-
-            RoadLayout.Advance(this, ActualSpeed);
-
-            if (_joinsCrosswalk && ReachedDestination())
-            {
-                JoinCrosswalk();
-            }
-        }
-
-        private void JoinCrosswalk()
-        {
-            Point crossingStart = RoadLayout.GetCrosswalkSpawn(_targetCrosswalkRoad);
-            X = crossingStart.X;
-            Y = crossingStart.Y;
-            Direction = RoadLayout.IsHorizontal(_targetCrosswalkRoad)
-                ? Direction.Down
-                : Direction.Right;
-            ConfigureCrosswalkConflicts(_targetCrosswalkRoad);
             WalksOnSidewalk = false;
-            ActualSpeed = 0;
-        }
-
-        private void ConfigureCrosswalkConflicts(Direction road)
-        {
-            if (RoadLayout.IsHorizontal(road))
+            RoadLayout.Advance(this, step);
+            if (RoadLayout.IsPedestrianDoneCrossing(this))
             {
-                _conflictA = Direction.Right;
-                _conflictB = Direction.Left;
-            }
-            else
-            {
-                _conflictA = Direction.Down;
-                _conflictB = Direction.Up;
-            }
-        }
-
-        private bool ReachedDestination()
-        {
-            switch (Direction)
-            {
-                case Direction.Right: return X >= _destinationCoordinate;
-                case Direction.Left: return X <= _destinationCoordinate;
-                case Direction.Down: return Y >= _destinationCoordinate;
-                case Direction.Up: return Y <= _destinationCoordinate;
-                default: return false;
+                IsCrossing = false;
+                WalksOnSidewalk = true;
+                _departing = true;
             }
         }
     }
