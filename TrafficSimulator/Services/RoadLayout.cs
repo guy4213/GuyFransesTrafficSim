@@ -18,7 +18,8 @@ namespace TrafficSimulator
         private const int CurbOffset = 26;
         private const int CrosswalkOffset = 26;
         private const int CrosswalkHalfThickness = 9;
-        private const int VehicleStopGap = 10;
+        private const int StopLineToCrosswalkGap = 10;
+        private const int VehicleStopGap = 8;
         private const int PedestrianSize = 14;
 
         public static bool IsHorizontal(Direction dir)
@@ -44,7 +45,7 @@ namespace TrafficSimulator
             return 0;
         }
 
-        // Places the front of a road object behind the near edge of the crosswalk.
+        // Places the front of a road object behind the stop line, leaving a visible gap.
         // Width is the object's travel length even when it is drawn vertically.
         public static void PlaceBeforeCrosswalk(TrafficObject obj, int extraDistance = 0)
         {
@@ -52,9 +53,7 @@ namespace TrafficSimulator
 
             int travelSign = obj.Direction == Direction.Right || obj.Direction == Direction.Down ? 1 : -1;
             int stopLine = GetStopLineCoordinate(obj.Direction);
-            int crosswalkCenter = stopLine - travelSign * CrosswalkOffset;
-            int approachingEdge = crosswalkCenter - travelSign * CrosswalkHalfThickness;
-            int front = approachingEdge - travelSign * (VehicleStopGap + Math.Max(0, extraDistance));
+            int front = stopLine - travelSign * (VehicleStopGap + Math.Max(0, extraDistance));
             int objectCenter = front - travelSign * obj.Width / 2;
 
             if (IsHorizontal(obj.Direction))
@@ -139,14 +138,22 @@ namespace TrafficSimulator
 
         public static int GetStopLineCoordinate(Direction dir)
         {
+            int travelSign = dir == Direction.Right || dir == Direction.Down ? 1 : -1;
+            int crosswalkCenter = GetCrosswalkCenterCoordinate(dir);
+            return crosswalkCenter - travelSign *
+                (CrosswalkHalfThickness + StopLineToCrosswalkGap);
+        }
+
+        public static int GetCrosswalkCenterCoordinate(Direction dir)
+        {
             switch (dir)
             {
-                case Direction.Right: return CenterX - RoadWidth / 2;
-                case Direction.Left: return CenterX + RoadWidth / 2;
-                case Direction.Down: return CenterY - RoadWidth / 2;
-                case Direction.Up: return CenterY + RoadWidth / 2;
+                case Direction.Right: return CenterX - RoadWidth / 2 - CrosswalkOffset;
+                case Direction.Left: return CenterX + RoadWidth / 2 + CrosswalkOffset;
+                case Direction.Down: return CenterY - RoadWidth / 2 - CrosswalkOffset;
+                case Direction.Up: return CenterY + RoadWidth / 2 + CrosswalkOffset;
+                default: return 0;
             }
-            return 0;
         }
 
         public static bool HasCrossedStopLine(TrafficObject obj)
@@ -154,10 +161,10 @@ namespace TrafficSimulator
             int stopLine = GetStopLineCoordinate(obj.Direction);
             switch (obj.Direction)
             {
-                case Direction.Right: return obj.X >= stopLine;
+                case Direction.Right: return obj.X + obj.Width >= stopLine;
                 case Direction.Left: return obj.X <= stopLine;
-                case Direction.Down: return obj.Y >= stopLine;
-                case Direction.Up: return obj.Y <= stopLine;
+                case Direction.Down: return obj.Y + obj.Height / 2 + obj.Width / 2 >= stopLine;
+                case Direction.Up: return obj.Y + obj.Height / 2 - obj.Width / 2 <= stopLine;
             }
             return false;
         }

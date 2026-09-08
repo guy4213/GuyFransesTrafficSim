@@ -88,8 +88,12 @@ namespace TrafficSimulator
             }
 
             bool safeToCross = all.ActiveGreenDirection != _conflictA && all.ActiveGreenDirection != _conflictB;
+            bool emergencyBlocksEntry = !IsCrossing &&
+                (all.HasMovingEmergencyVehicle || all.HasActiveEmergency);
 
-            if (!safeToCross || all.HasActiveEmergency)
+            // Never enter in front of a moving emergency vehicle. A pedestrian
+            // already on the road keeps moving so the crossing is cleared safely.
+            if (!IsCrossing && (!safeToCross || emergencyBlocksEntry))
             {
                 ActualSpeed = 0;
                 IsCrossing = false;

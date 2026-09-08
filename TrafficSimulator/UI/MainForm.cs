@@ -244,10 +244,15 @@ namespace TrafficSimulator
 
             using (Pen stop = new Pen(markingColor, 5))
             {
-                g.DrawLine(stop, cx - rw / 2, cy + 6, cx - rw / 2, cy + rw / 2 - 4);
-                g.DrawLine(stop, cx + rw / 2, cy - rw / 2 + 4, cx + rw / 2, cy - 6);
-                g.DrawLine(stop, cx - 6, cy - rw / 2, cx - rw / 2 + 4, cy - rw / 2);
-                g.DrawLine(stop, cx + rw / 2 - 4, cy + rw / 2, cx + 6, cy + rw / 2);
+                int westStop = RoadLayout.GetStopLineCoordinate(Direction.Right);
+                int eastStop = RoadLayout.GetStopLineCoordinate(Direction.Left);
+                int northStop = RoadLayout.GetStopLineCoordinate(Direction.Down);
+                int southStop = RoadLayout.GetStopLineCoordinate(Direction.Up);
+
+                g.DrawLine(stop, westStop, cy + 6, westStop, cy + rw / 2 - 4);
+                g.DrawLine(stop, eastStop, cy - rw / 2 + 4, eastStop, cy - 6);
+                g.DrawLine(stop, cx - rw / 2 + 4, northStop, cx - 6, northStop);
+                g.DrawLine(stop, cx + 6, southStop, cx + rw / 2 - 4, southStop);
             }
 
             using (Brush crosswalkBrush = new SolidBrush(markingColor))

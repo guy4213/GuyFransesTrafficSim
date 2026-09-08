@@ -25,6 +25,19 @@ namespace TrafficSimulator
             }
         }
 
+        public bool HasMovingEmergencyVehicle
+        {
+            get
+            {
+                for (int i = 0; i < _items.Count; i++)
+                {
+                    if (_items[i] is EmergencyVehicle emergency && emergency.ActualSpeed > 0)
+                        return true;
+                }
+                return false;
+            }
+        }
+
         public TrafficObject this[int index]
         {
             get { return _items[index]; }
