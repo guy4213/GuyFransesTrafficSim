@@ -120,7 +120,11 @@ namespace TrafficSimulator
                 IsStoppedAtStation = true;
                 _stopTimer = 15;
                 _lastServicedStation = targetStation;
-                BoardPassenger();
+                if (targetStation.WaitingPassengers > 0)
+                {
+                    BoardPassenger();
+                    targetStation.WaitingPassengers--;
+                }
                 ActualSpeed = 0;
                 return;
             }

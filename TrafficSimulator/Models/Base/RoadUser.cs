@@ -2,6 +2,7 @@ using System;
 
 namespace TrafficSimulator
 {
+    [Serializable]
     public abstract class RoadUser : TrafficObject
     {
         public bool IsOvertaking;

@@ -51,6 +51,7 @@ namespace TrafficSimulator
             }
 
             IsCrossing = true;
+            ActualSpeed = DesiredSpeed;
             RoadLayout.Advance(this, ActualSpeed);
         }
     }

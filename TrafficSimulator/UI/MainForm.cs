@@ -394,7 +394,7 @@ namespace TrafficSimulator
 
         private void OnDeleteEntityClick(object sender, EventArgs e)
         {
-            _trafficCollection.GetAllObjects().Clear();
+            _trafficCollection.Clear();
             pictureBoxCanvas.Invalidate();
         }
 
@@ -431,11 +431,22 @@ namespace TrafficSimulator
                     {
                         var loadedCollection = SaveLoadManager.Load(ofd.FileName);
 
-                        _trafficCollection.GetAllObjects().Clear();
+                        _trafficCollection.Clear();
                         foreach (var obj in loadedCollection.GetAllObjects())
                         {
                             _trafficCollection.Add(obj);
                         }
+
+                        _trafficCollection.ActiveGreenDirection = loadedCollection.ActiveGreenDirection;
+                        int loadedLightIndex = Array.IndexOf(RoadDirections, loadedCollection.ActiveGreenDirection);
+                        if (loadedLightIndex >= 0)
+                        {
+                            _lightCycleIndex = loadedLightIndex;
+                            _currentPhase = LightPhase.Green;
+                            _phaseTicks = 0;
+                            comboBoxStartLight.SelectedIndex = loadedLightIndex;
+                        }
+
                         pictureBoxCanvas.Invalidate();
                         MessageBox.Show("הסימולציה נטענה בהצלחה!", "טעינה", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
