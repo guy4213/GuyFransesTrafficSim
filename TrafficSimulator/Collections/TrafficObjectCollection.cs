@@ -40,7 +40,14 @@ namespace TrafficSimulator
 
         public void Add(TrafficObject obj)
         {
-           _items.Add(obj);
+            // Road-bound objects always use their lane's geometric centre.
+            // Pedestrians and stations deliberately live on the pavement/curb.
+            if (!(obj is Pedestrian) && !(obj is BusStation))
+            {
+                RoadLayout.CenterInLane(obj);
+            }
+
+            _items.Add(obj);
         }
 
         public void RemoveAt(int index)

@@ -308,8 +308,8 @@ namespace TrafficSimulator
             int lane = (int)numericUpDownLane.Value;
             string type = comboBoxEntityType.SelectedItem as string;
 
-            // static objects are placed explicitly via Offset (measured back from the stop
-            // line); bus stations are pushed onto the curb so they don't block the lane.
+            // Static objects are placed explicitly via Offset. Hazards are measured back
+            // from the stop line; stations sit by the outgoing road after the light.
             if (type == "BusStation" || type == "RoadHazard")
             {
                 int offset = (int)numericUpDownOffset.Value;
@@ -479,6 +479,14 @@ namespace TrafficSimulator
 
         private void PictureBoxCanvas_MouseUp(object sender, MouseEventArgs e)
         {
+            if (_draggedObject != null &&
+                !(_draggedObject is Pedestrian) &&
+                !(_draggedObject is BusStation))
+            {
+                RoadLayout.CenterInLane(_draggedObject);
+                pictureBoxCanvas.Invalidate();
+            }
+
             _draggedObject = null;
         }
 
@@ -496,6 +504,11 @@ namespace TrafficSimulator
                 float factor = e.Delta > 0 ? 1.1f : 0.9f;
                 hit.Width = Math.Max(8, Math.Min(160, (int)(hit.Width * factor)));
                 hit.Height = Math.Max(6, Math.Min(120, (int)(hit.Height * factor)));
+
+                if (!(hit is Pedestrian) && !(hit is BusStation))
+                {
+                    RoadLayout.CenterInLane(hit);
+                }
             }
 
             pictureBoxCanvas.Invalidate();
@@ -508,6 +521,11 @@ namespace TrafficSimulator
 
             int newIdx = ((idx + steps) % RoadDirections.Length + RoadDirections.Length) % RoadDirections.Length;
             obj.Direction = RoadDirections[newIdx];
+
+            if (!(obj is Pedestrian) && !(obj is BusStation))
+            {
+                RoadLayout.CenterInLane(obj);
+            }
         }
 
         public void ToggleNightMode()

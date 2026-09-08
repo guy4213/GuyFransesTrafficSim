@@ -59,24 +59,29 @@ namespace TrafficSimulator
             return new System.Drawing.Point(0, 0);
         }
 
-        // static roadside object (bus stop) pushed out of the lane onto the curb,
-        // so it doesn't block traffic - measured back from the stop line.
-        public static System.Drawing.Point GetRoadsideStaticPosition(Direction dir, int lane, int offsetFromStopLine)
+        // A bus stop sits beside the outgoing road, after the intersection in the
+        // direction of travel. This keeps it beyond the traffic light instead of
+        // placing it in the queue approaching the light.
+        public static System.Drawing.Point GetRoadsideStaticPosition(Direction dir, int lane, int distanceAfterIntersection)
         {
-            Point lanePos = GetLaneStaticPosition(dir, lane, offsetFromStopLine);
-
-            // push all the way past the outer edge of the road (not just past the lane
-            // center) so the station clears the asphalt regardless of which lane was picked.
             switch (dir)
             {
-                case Direction.Right: // West lanes sit in the top half -> push up past the curb
-                    return new System.Drawing.Point(lanePos.X, CenterY - RoadWidth / 2 - CurbOffset);
-                case Direction.Left: // East lanes sit in the bottom half -> push down past the curb
-                    return new System.Drawing.Point(lanePos.X, CenterY + RoadWidth / 2 + CurbOffset);
-                case Direction.Down: // North lanes sit in the left half -> push left past the curb
-                    return new System.Drawing.Point(CenterX - RoadWidth / 2 - CurbOffset, lanePos.Y);
-                default: // Up: South lanes sit in the right half -> push right past the curb
-                    return new System.Drawing.Point(CenterX + RoadWidth / 2 + CurbOffset, lanePos.Y);
+                case Direction.Right:
+                    return new System.Drawing.Point(
+                        CenterX + RoadWidth / 2 + distanceAfterIntersection,
+                        CenterY - RoadWidth / 2 - CurbOffset);
+                case Direction.Left:
+                    return new System.Drawing.Point(
+                        CenterX - RoadWidth / 2 - distanceAfterIntersection,
+                        CenterY + RoadWidth / 2 + CurbOffset);
+                case Direction.Down:
+                    return new System.Drawing.Point(
+                        CenterX - RoadWidth / 2 - CurbOffset,
+                        CenterY + RoadWidth / 2 + distanceAfterIntersection);
+                default: // Up
+                    return new System.Drawing.Point(
+                        CenterX + RoadWidth / 2 + CurbOffset,
+                        CenterY - RoadWidth / 2 - distanceAfterIntersection);
             }
         }
 
@@ -162,11 +167,19 @@ namespace TrafficSimulator
         public static void SetLane(TrafficObject obj, int lane)
         {
             obj.Lane = lane;
-            int laneCenter = GetLaneCenter(obj.Direction, lane);
+            CenterInLane(obj);
+        }
+
+        // X/Y are the top-left drawing coordinates, while GetLaneCenter returns
+        // the geometric centre line. Account for the object's dimensions so its
+        // visual centre, rather than its top-left corner, lies on that line.
+        public static void CenterInLane(TrafficObject obj)
+        {
+            int laneCenter = GetLaneCenter(obj.Direction, obj.Lane);
             if (IsHorizontal(obj.Direction))
-                obj.Y = laneCenter;
+                obj.Y = laneCenter - obj.Height / 2;
             else
-                obj.X = laneCenter;
+                obj.X = laneCenter - obj.Width / 2;
         }
 
         public static int ForwardDistance(TrafficObject self, TrafficObject other)
