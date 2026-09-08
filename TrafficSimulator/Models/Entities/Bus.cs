@@ -9,8 +9,11 @@ namespace TrafficSimulator
         public int PassengerCount;
         public bool IsStoppedAtStation;
 
+        private const int Capacity = 24;
         private int _stopTimer = 0;
+        private int _dwellTicks = 0;
         private BusStation _lastServicedStation = null;
+        private static readonly Random _rng = new Random();
 
         public Bus(int x, int y, int lane, Direction dir, float desiredSpeed=50f, int initialPassengers = 0)
             : base(x, y, lane, dir, desiredSpeed)
@@ -23,7 +26,7 @@ namespace TrafficSimulator
 
         public void BoardPassenger()
         {
-            PassengerCount++;
+            if (PassengerCount < Capacity) PassengerCount++;
         }
 
         public void DisembarkPassenger()
@@ -68,12 +71,29 @@ namespace TrafficSimulator
             }
 
             using (Brush windowBrush = new SolidBrush(Color.FromArgb(150, 190, 220, 235)))
+            using (Brush headBrush = new SolidBrush(Color.FromArgb(80, 55, 40)))
             {
                 float winW = Width * 0.12f;
                 float gap = Width * 0.05f;
+                float winH = Height * 0.35f;
+                float winY = Height * 0.2f;
+                int headsShown = 0;
+                int headsToShow = Math.Min(PassengerCount, 8);
                 for (int i = 0; i < 4; i++)
                 {
-                    g.FillRectangle(windowBrush, Width * 0.1f + i * (winW + gap), Height * 0.2f, winW, Height * 0.35f);
+                    float winX = Width * 0.1f + i * (winW + gap);
+                    g.FillRectangle(windowBrush, winX, winY, winW, winH);
+
+                    // Riders peek through the windows so the bus visibly fills up
+                    // as passengers board, even while it is still driving.
+                    for (int slot = 0; slot < 2 && headsShown < headsToShow; slot++)
+                    {
+                        float headSize = winW * 0.4f;
+                        float headX = winX + (slot == 0 ? winW * 0.1f : winW * 0.5f);
+                        float headY = winY + winH * 0.15f;
+                        g.FillEllipse(headBrush, headX, headY, headSize, headSize);
+                        headsShown++;
+                    }
                 }
             }
             EndOrientedDraw(g, state);
@@ -90,11 +110,27 @@ namespace TrafficSimulator
             if (IsStoppedAtStation)
             {
                 ActualSpeed = 0;
-                _stopTimer--;
+                _dwellTicks++;
 
+                // A few riders step off right as the doors open...
+                if (_dwellTicks == 1 && PassengerCount > 0)
+                {
+                    int leaving = _rng.Next(0, Math.Min(PassengerCount, 3) + 1);
+                    for (int i = 0; i < leaving; i++) DisembarkPassenger();
+                }
+
+                // ...then waiting passengers board one at a time while the doors stay open.
+                if (_dwellTicks % 3 == 0 && _lastServicedStation != null && _lastServicedStation.WaitingPassengers > 0)
+                {
+                    BoardPassenger();
+                    _lastServicedStation.WaitingPassengers--;
+                }
+
+                _stopTimer--;
                 if (_stopTimer <= 0)
                 {
                     IsStoppedAtStation = false;
+                    _dwellTicks = 0;
                 }
                 return;
             }
@@ -119,12 +155,8 @@ namespace TrafficSimulator
             {
                 IsStoppedAtStation = true;
                 _stopTimer = 15;
+                _dwellTicks = 0;
                 _lastServicedStation = targetStation;
-                if (targetStation.WaitingPassengers > 0)
-                {
-                    BoardPassenger();
-                    targetStation.WaitingPassengers--;
-                }
                 ActualSpeed = 0;
                 return;
             }
