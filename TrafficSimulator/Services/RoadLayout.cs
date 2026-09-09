@@ -94,10 +94,12 @@ namespace TrafficSimulator
             int front = stopLine - travelSign * (VehicleStopGap + Math.Max(0, extraDistance));
             int objectCenter = front - travelSign * obj.Width / 2;
 
+            // A long queue can push extraDistance past the canvas edge; clamp so the
+            // object stacks at the edge instead of landing off-canvas and out of view.
             if (IsHorizontal(obj.Direction))
-                obj.X = objectCenter - obj.Width / 2;
+                obj.X = Math.Clamp(objectCenter - obj.Width / 2, 0, CanvasWidth - obj.Width);
             else
-                obj.Y = objectCenter - obj.Height / 2;
+                obj.Y = Math.Clamp(objectCenter - obj.Height / 2, 0, CanvasHeight - obj.Height);
         }
 
         // A bus stop sits beside the outgoing road, after the intersection in the
