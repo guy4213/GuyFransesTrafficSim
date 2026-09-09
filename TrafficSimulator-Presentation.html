@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>תיק פרויקט TrafficSimulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&family=Suez+One&family=JetBrains+Mono:wght@400;700&display=swap">
+
+<style>
+  :root {
+    --ground: #e6e9eb;
+    --surface: #f3f5f6;
+    --surface-sunk: #dbdfe3;
+    --ink: #1a1d23;
+    --ink-soft: #4b525c;
+    --ink-faint: #79818c;
+    --rule: #c5cad0;
+    --rule-soft: #d6dade;
+    --accent: #c48f00;
+    --accent-bright: #f2b705;
+    --accent-wash: rgba(242, 183, 5, 0.14);
+    --go: #1a8f47;
+    --wait: #a97400;
+    --stop: #c02b2b;
+    --code-bg: #1a1d23;
+    --code-ink: #e9e4da;
+    --code-faint: #8a9099;
+    --code-rule: #2f343c;
+    --shadow: 0 1px 2px rgba(20, 24, 30, .07), 0 6px 18px rgba(20, 24, 30, .06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #15171c;
+      --surface: #1d2026;
+      --surface-sunk: #101216;
+      --ink: #e9e4da;
+      --ink-soft: #aab1ba;
+      --ink-faint: #7d848e;
+      --rule: #2f343c;
+      --rule-soft: #262a31;
+      --accent: #f2b705;
+      --accent-bright: #ffc82e;
+      --accent-wash: rgba(242, 183, 5, 0.12);
+      --go: #3ddc73;
+      --wait: #ffd23f;
+      --stop: #ff6b6b;
+      --code-bg: #101216;
+      --code-rule: #282d34;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .28);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #15171c;
+    --surface: #1d2026;
+    --surface-sunk: #101216;
+    --ink: #e9e4da;
+    --ink-soft: #aab1ba;
+    --ink-faint: #7d848e;
+    --rule: #2f343c;
+    --rule-soft: #262a31;
+    --accent: #f2b705;
+    --accent-bright: #ffc82e;
+    --accent-wash: rgba(242, 183, 5, 0.12);
+    --go: #3ddc73;
+    --wait: #ffd23f;
+    --stop: #ff6b6b;
+    --code-bg: #101216;
+    --code-rule: #282d34;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .28);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    direction: rtl;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Heebo", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  /* ---------- header ---------- */
+
+  header.masthead {
+    padding: 56px 0 34px;
+    border-bottom: 3px solid var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::after {
+    content: "";
+    flex: 1;
+    height: 3px;
+    background: repeating-linear-gradient(to left, var(--accent) 0 14px, transparent 14px 26px);
+    opacity: .5;
+  }
+
+  h1 {
+    font-family: "Suez One", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(38px, 6.2vw, 62px);
+    line-height: 1.06;
+    letter-spacing: -0.01em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  h1 .lat { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: .82em; letter-spacing: -0.03em; }
+
+  .lede {
+    font-size: 19px;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0 0 30px;
+    font-weight: 300;
+  }
+  .lede strong { color: var(--ink); font-weight: 500; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .stat { background: var(--surface); padding: 12px 14px; }
+  .stat b {
+    display: block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat span { font-size: 12px; color: var(--ink-faint); }
+
+  /* ---------- nav ---------- */
+
+  nav.toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 18px 0 0;
+    margin-bottom: 8px;
+  }
+  nav.toc a {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 5px 11px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--surface);
+    transition: color .12s, border-color .12s;
+  }
+  nav.toc a:hover { color: var(--ink); border-color: var(--ink-faint); }
+  nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- sections ---------- */
+
+  section { padding-top: 54px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 12px;
+  }
+  .sec-num {
+    flex: none;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--accent-bright);
+    color: #3a2b00;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+    font-size: 14px;
+    display: grid;
+    place-items: center;
+    align-self: center;
+  }
+  h2 {
+    font-family: "Suez One", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(23px, 3.2vw, 31px);
+    margin: 0;
+    line-height: 1.2;
+  }
+  .sec-sub { color: var(--ink-faint); font-size: 14px; margin: 0 0 26px; }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 34px 0 12px;
+  }
+  p { max-width: 68ch; }
+  p.tight { margin: 0 0 14px; }
+
+  /* ---------- code ---------- */
+
+  .ref {
+    direction: ltr;
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--ink-soft);
+    background: var(--surface-sunk);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 1px 6px;
+    white-space: nowrap;
+    unicode-bidi: isolate;
+  }
+  .ref b { color: var(--ink); font-weight: 700; }
+
+  pre {
+    direction: ltr;
+    text-align: left;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 14px 16px;
+    overflow-x: auto;
+    border-radius: 3px;
+    border: 1px solid var(--code-rule);
+    tab-size: 4;
+  }
+  pre .c { color: var(--code-faint); }
+  pre .k { color: var(--accent-bright); }
+  pre .hl {
+    display: inline-block;
+    width: 100%;
+    background: rgba(242, 183, 5, .13);
+    box-shadow: inset 3px 0 0 var(--accent-bright);
+    padding-left: 5px;
+    margin-left: -8px;
+  }
+
+  /* ---------- principle rows ---------- */
+
+  .principle {
+    display: grid;
+    grid-template-columns: minmax(0, 37fr) minmax(0, 63fr);
+    gap: 22px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    align-items: start;
+  }
+  .principle:last-child { border-bottom: 0; }
+  .p-name {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 2px;
+    line-height: 1.3;
+  }
+  .p-term {
+    direction: ltr;
+    text-align: right;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11.5px;
+    color: var(--accent);
+    letter-spacing: .04em;
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+  .p-desc { font-size: 14.5px; color: var(--ink-soft); margin: 0 0 12px; max-width: 42ch; }
+  .p-refs { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  /* ---------- class tree ---------- */
+
+  .tree {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .tree-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--rule-soft);
+    flex-wrap: wrap;
+  }
+  .tree-row:last-child { border-bottom: 0; }
+  .tree-name {
+    direction: ltr;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: pre;
+    color: var(--ink);
+    flex: none;
+  }
+  .tree-name .br { color: var(--ink-faint); font-weight: 400; }
+  .tree-note { font-size: 13.5px; color: var(--ink-soft); flex: 1 1 200px; min-width: 0; }
+  .tag {
+    flex: none;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    padding: 1px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    font-family: "JetBrains Mono", monospace;
+  }
+  .tag-abs { background: var(--accent-wash); color: var(--accent); border: 1px solid var(--accent); }
+  .tag-mv { background: transparent; color: var(--go); border: 1px solid var(--go); }
+  .tag-st { background: transparent; color: var(--ink-faint); border: 1px solid var(--rule); }
+
+  /* ---------- layers ---------- */
+
+  .layers { display: flex; flex-direction: column; gap: 8px; }
+  .layer {
+    display: grid;
+    grid-template-columns: 132px 1fr;
+    gap: 18px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-right: 4px solid var(--accent-bright);
+    border-radius: 3px;
+    padding: 14px 16px;
+    align-items: start;
+  }
+  .layer.l2 { border-right-color: var(--go); }
+  .layer.l3 { border-right-color: var(--wait); }
+  .layer.l4 { border-right-color: var(--ink-faint); }
+  .layer-name {
+    direction: ltr;
+    text-align: right;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .layer-name small { display: block; direction: rtl; text-align: right; font-family: "Heebo", sans-serif; font-size: 11.5px; color: var(--ink-faint); font-weight: 400; letter-spacing: 0; }
+  .layer-body { font-size: 14px; color: var(--ink-soft); }
+  .layer-body b { color: var(--ink); font-weight: 500; }
+
+  .flowline {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    padding: 4px 0;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* ---------- steps ---------- */
+
+  .steps { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+  .step {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 14px;
+    padding: 11px 0;
+    border-bottom: 1px dashed var(--rule);
+    align-items: start;
+  }
+  .step:last-child { border-bottom: 0; }
+  .step-n {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-wash);
+    border-radius: 2px;
+    text-align: center;
+    padding: 2px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .step-b { font-size: 14.5px; }
+  .step-b b { font-weight: 700; }
+  .step-b .ref { margin-top: 4px; }
+
+  /* ---------- feature table ---------- */
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+  th, td { text-align: right; padding: 9px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  th {
+    font-size: 11.5px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 700;
+    background: var(--surface-sunk);
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: 0; }
+  td.feat { font-weight: 500; width: 34%; }
+  td.where { width: 30%; }
+  td.how { color: var(--ink-soft); font-size: 13.5px; }
+
+  /* ---------- callouts ---------- */
+
+  .note {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-right: 4px solid var(--accent-bright);
+    border-radius: 3px;
+    padding: 14px 18px;
+    margin: 20px 0 0;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+  }
+  .note b { color: var(--ink); }
+  .note.go { border-right-color: var(--go); }
+
+  .qa { border-top: 1px solid var(--rule); }
+  .q {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .q:last-child { border-bottom: 0; }
+  .q-q {
+    font-weight: 700;
+    font-size: 15.5px;
+    margin: 0 0 7px;
+    display: flex;
+    gap: 9px;
+    align-items: baseline;
+  }
+  .q-q::before {
+    content: "?";
+    flex: none;
+    font-family: "JetBrains Mono", monospace;
+    color: var(--stop);
+    font-size: 15px;
+  }
+  .q-a { margin: 0; font-size: 14.5px; color: var(--ink-soft); max-width: 74ch; }
+  .q-a .ref { margin: 0 2px; }
+
+  .constraints { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .cx {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 13px 15px;
+  }
+  .cx-h {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 14.5px; margin-bottom: 4px;
+  }
+  .cx-h::before {
+    content: "✓";
+    color: var(--go);
+    font-weight: 700;
+  }
+  .cx p { font-size: 13px; color: var(--ink-soft); margin: 0; max-width: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+  .chip {
+    font-size: 13px;
+    padding: 4px 11px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 20px;
+    color: var(--ink-soft);
+  }
+
+  footer {
+    margin-top: 66px;
+    padding-top: 22px;
+    border-top: 3px solid var(--ink);
+    font-size: 13px;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  @media (max-width: 720px) {
+    .principle { grid-template-columns: 1fr; gap: 12px; }
+    .layer { grid-template-columns: 1fr; gap: 6px; }
+    .layer-name, .layer-name small, .p-term { text-align: right; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    nav.toc { display: none; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">תיק פרויקט · תכנות מונחה עצמים</p>
+    <h1><span class="lat">TrafficSimulator</span><br>סימולטור צומת תנועה</h1>
+    <p class="lede">
+      אפליקציית <strong>C# WinForms</strong> על <strong>.NET&nbsp;8</strong> שמדמה צומת ארבעה כיוונים בזמן אמת:
+      רמזורים מתחלפים, כלי רכב שבולמים ועוקפים, אוטובוסים שאוספים נוסעים בתחנות, הולכי רגל שחוצים במעברי חצייה,
+      ורכב חירום שמפנה לעצמו נתיב. כל הסימולציה ניתנת לשמירה לקובץ ולטעינה בחזרה.
+    </p>
+    <div class="stats">
+      <div class="stat"><b>16</b><span>קבצי קוד</span></div>
+      <div class="stat"><b>2,189</b><span>שורות</span></div>
+      <div class="stat"><b>14</b><span>מחלקות</span></div>
+      <div class="stat"><b>2</b><span>אבסטרקטיות</span></div>
+      <div class="stat"><b>3</b><span>סטטיות</span></div>
+      <div class="stat"><b>4</b><span>Enums</span></div>
+      <div class="stat"><b>0</b><span>שימושי LINQ</span></div>
+    </div>
+    <nav class="toc">
+      <a href="#what">מה התוכנה עושה</a>
+      <a href="#arch">ארכיטקטורה</a>
+      <a href="#tree">היררכיית מחלקות</a>
+      <a href="#oop">עקרונות OOP בקוד</a>
+      <a href="#tick">מחזור חיים של טיק</a>
+      <a href="#features">מפת פיצ'רים</a>
+      <a href="#limits">מגבלות שנשמרו</a>
+      <a href="#qa">שאלות מהבוחן</a>
+    </nav>
+  </header>
+
+  <!-- ============ 1 ============ -->
+  <section id="what">
+    <div class="sec-head">
+      <span class="sec-num">1</span>
+      <h2>מה התוכנה עושה</h2>
+    </div>
+    <p class="sec-sub">התמונה הגדולה לפני שנכנסים לקוד</p>
+
+    <p class="tight">
+      על גבי <b>PictureBox</b> בגודל 760×500 מצויר צומת של שני כבישים דו-מסלוליים שנחתכים במרכז.
+      טיימר שרץ כל 100 מילישניות מזיז את כל האובייקטים בעולם, מקדם את הרמזור, ומצייר מחדש את הפריים.
+      המשתמש יכול להוסיף ולמחוק ישויות, לגרור אותן בעכבר, לשנות את גודלן ואת כיוונן, ולעבור בין יום ללילה.
+    </p>
+
+    <h3>הישויות בעולם</h3>
+    <div class="chips">
+      <span class="chip">🚗 מכונית</span>
+      <span class="chip">🚌 אוטובוס עם נוסעים</span>
+      <span class="chip">🚑 רכב חירום</span>
+      <span class="chip">🚲 אופניים</span>
+      <span class="chip">🚶 הולך רגל</span>
+      <span class="chip">🚏 תחנת אוטובוס</span>
+      <span class="chip">⚠️ מכשול בכביש</span>
+    </div>
+
+    <h3>חוקי התנועה שמומשו</h3>
+    <div class="chips">
+      <span class="chip">רמזור מחזורי לארבעה כיוונים + שלב צהוב</span>
+      <span class="chip">עצירה בקו עצירה באדום</span>
+      <span class="chip">זכות קדימה להולך רגל במעבר חצייה</span>
+      <span class="chip">שמירת מרחק ובלימה הדרגתית</span>
+      <span class="chip">עקיפה והחלפת נתיב</span>
+      <span class="chip">פינוי דרך לרכב חירום</span>
+      <span class="chip">עצירה בתחנה + עלייה וירידה של נוסעים</span>
+      <span class="chip">מצב יום / לילה</span>
+      <span class="chip">שמירה וטעינה לקובץ</span>
+    </div>
+  </section>
+
+  <!-- ============ 2 ============ -->
+  <section id="arch">
+    <div class="sec-head">
+      <span class="sec-num">2</span>
+      <h2>ארכיטקטורה</h2>
+    </div>
+    <p class="sec-sub">ארבע שכבות, כל אחת עם תפקיד אחד, והתלות זורמת בכיוון אחד בלבד</p>
+
+    <div class="layers">
+      <div class="layer">
+        <div class="layer-name">UI/<small>ממשק משתמש</small></div>
+        <div class="layer-body">
+          <b>MainForm.cs</b> — הטופס הראשי: הטיימר, מכונת המצבים של הרמזור, ציור הכביש והצומת,
+          כל מטפלי האירועים (כפתורים, עכבר, מקלדת), ודיאלוגי שמירה/טעינה.
+          <b>MainForm.Designer.cs</b> — הגדרת הפקדים שנוצרה ע"י המעצב.
+        </div>
+      </div>
+      <div class="flowline">↓ קורא ל־</div>
+      <div class="layer l2">
+        <div class="layer-name">Collections/<small>ניהול האוסף</small></div>
+        <div class="layer-body">
+          <b>TrafficObjectCollection.cs</b> — האוסף המותאם אישית שמחזיק את כל ישויות העולם,
+          מריץ עליהן <b>UpdateAll</b> ו-<b>DrawAll</b>, ומחשב את הסטטיסטיקות.
+        </div>
+      </div>
+      <div class="flowline">↓ מחזיק ומפעיל</div>
+      <div class="layer l3">
+        <div class="layer-name">Models/<small>הישויות עצמן</small></div>
+        <div class="layer-body">
+          <b>Base/</b> — TrafficObject ו-RoadUser, שתי מחלקות הבסיס האבסטרקטיות.
+          <b>Entities/</b> — שבע המחלקות הקונקרטיות. <b>Enums.cs</b> — ארבעת הטיפוסים המנויים.
+        </div>
+      </div>
+      <div class="flowline">↓ משתמש בשירותי</div>
+      <div class="layer l4">
+        <div class="layer-name">Services/<small>שירותים סטטיים</small></div>
+        <div class="layer-body">
+          <b>RoadLayout.cs</b> — כל הגיאומטריה של הצומת במקום אחד: מרכזי נתיבים, קווי עצירה,
+          מיקומי מעברי חצייה, תנועה קדימה, ובדיקות גבולות.
+          <b>SaveLoadManager.cs</b> — סריאליזציה בינארית לקובץ.
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>למה זה חשוב להציג:</b> אף מחלקת מודל לא יודעת דבר על WinForms מלבד <span class="ref">System.Drawing</span> לציור,
+      ו-<b>RoadLayout</b> מרכז את כל המספרים הקסומים של הגיאומטריה — כך ששינוי רוחב כביש אחד
+      <span class="ref"><b>RoadLayout.cs:12</b></span> מזיז נכון את כל הרכבים, קווי העצירה, המעברים והרמזורים בבת אחת.
+    </div>
+
+    <h3>עץ התיקיות</h3>
+    <pre>TrafficSimulator/
+├── Models/
+│   ├── Base/
+│   │   ├── TrafficObject.cs      <span class="c">// מחלקת בסיס אבסטרקטית</span>
+│   │   └── RoadUser.cs           <span class="c">// אבסטרקטית - מי שזז בכביש</span>
+│   ├── Entities/
+│   │   ├── Car.cs                Bicycle.cs
+│   │   ├── Bus.cs                Pedestrian.cs
+│   │   ├── EmergencyVehicle.cs   RoadHazard.cs
+│   │   └── BusStation.cs
+│   └── Enums.cs                  <span class="c">// CarModel, Direction, VehicleState, StationType</span>
+├── Collections/
+│   └── TrafficObjectCollection.cs
+├── Services/
+│   ├── RoadLayout.cs
+│   └── SaveLoadManager.cs
+├── UI/
+│   ├── MainForm.cs
+│   └── MainForm.Designer.cs
+└── Program.cs                    <span class="c">// נקודת הכניסה</span></pre>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section id="tree">
+    <div class="sec-head">
+      <span class="sec-num">3</span>
+      <h2>היררכיית המחלקות</h2>
+    </div>
+    <p class="sec-sub">שתי רמות ירושה, והשיקול שקבע מי יורש ממי</p>
+
+    <div class="tree">
+      <div class="tree-row">
+        <span class="tree-name">TrafficObject</span>
+        <span class="tag tag-abs">abstract</span>
+        <span class="tree-note">כל מה שקיים על המסך: מיקום, גודל, נתיב, כיוון, מהירות רצויה ובפועל</span>
+        <span class="ref"><b>Models/Base/TrafficObject.cs:8</b></span>
+      </div>
+      <div class="tree-row">
+        <span class="tree-name"><span class="br">├─ </span>RoadUser</span>
+        <span class="tag tag-abs">abstract</span>
+        <span class="tag tag-mv">זז</span>
+        <span class="tree-note">מוסיף את כל מה שרלוונטי רק לישות שנעה: עצירה ברמזור, שמירת מרחק, החלפת נתיב</span>
+        <span class="ref"><b>Models/Base/RoadUser.cs:6</b></span>
+      </div>
+      <div class="tree-row">
+        <span class="tree-name"><span class="br">│  ├─ </span>Car</span>
+        <span class="tree-note">מכונית. מחזיקה <span class="ref">CarModel</span> ומציירת גוף מעוגל עם שמשה</span>
+        <span class="ref"><b>Car.cs:7</b></span>
+      </div>
+      <div class="tree-row">
+        <span class="tree-name"><span class="br">│  ├─ </span>Bus</span>
+        <span class="tree-note">עוצר בתחנות, מעלה ומוריד נוסעים, ומציג אותם בחלונות</span>
+        <span class="ref"><b>Bus.cs:7</b></span>
+      </div>
+      <div class="tree-row">
+        <span class="tree-name"><span class="br">│  ├─ </span>EmergencyVehicle</span>
+        <span class="tree-note">מדליק סירנה וגורם לרכבים שלפניו לפנות לנתיב הימני</span>
+        <span class="ref"><b>EmergencyVehicle.cs:7</b></span>
+      </div>
+      <div class="tree-row">
+        <span class="tree-name"><span class="br">│  ├─ </span>Bicycle</span>
+        <span class="tree-note">איטי יותר, מצויר כשני גלגלים ושלדה</span>
+        <span class="ref"><b>Bicycle.cs:7</b></span>
+      </div>
+      <div class="tree-row">
+        <span class="tree-name"><span class="br">│  └─ </span>Pedestrian</span>
+        <span class="tree-note">מסלול תלת-שלבי: הליכה על המדרכה ← חצייה במעבר ← יציאה מהפריים</span>
+        <span class="ref"><b>Pedestrian.cs:8</b></span>
+      </div>
+      <div class="tree-row">
+        <span class="tree-name"><span class="br">├─ </span>RoadHazard</span>
+        <span class="tag tag-st">סטטי</span>
+        <span class="tree-note">מכשול משולש. <span class="ref">Move</span> שלו ריק בכוונה — הוא לא זז אף פעם</span>
+        <span class="ref"><b>RoadHazard.cs:7</b></span>
+      </div>
+      <div class="tree-row">
+        <span class="tree-name"><span class="br">└─ </span>BusStation</span>
+        <span class="tag tag-st">סטטי</span>
+        <span class="tree-note">תחנה עם <span class="ref">StationType</span> ומספר ממתינים שיורד כשאוטובוס אוסף אותם</span>
+        <span class="ref"><b>BusStation.cs:7</b></span>
+      </div>
+    </div>
+
+    <div class="note go">
+      <b>ההחלטה שכדאי להסביר בעל פה:</b> למה בכלל צריך את <b>RoadUser</b> באמצע?
+      כי החלפת נתיב, שמירת מרחק ועצירה בקו עצירה רלוונטיות רק למי שנע.
+      מכשול בכביש ותחנת אוטובוס לא צריכים אותן — ולכן הם יורשים ישירות מ-<b>TrafficObject</b>.
+      זו בדיוק המטרה של רמת ביניים בהיררכיה: לא לכפות התנהגות על מי שלא צריך אותה.
+    </div>
+  </section>
+
+  <!-- ============ 4 ============ -->
+  <section id="oop">
+    <div class="sec-head">
+      <span class="sec-num">4</span>
+      <h2>עקרונות OOP — איפה כל אחד יושב בקוד</h2>
+    </div>
+    <p class="sec-sub">כל עיקרון, עם המיקום המדויק וקטע הקוד להצביע עליו</p>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">הפשטה</p>
+        <p class="p-term">Abstraction</p>
+        <p class="p-desc">
+          <b>TrafficObject</b> מגדירה <em>מה</em> כל ישות חייבת לדעת לעשות — לצייר את עצמה ולזוז —
+          בלי לקבוע <em>איך</em>. אי אפשר ליצור ממנה מופע, ומי שיורש חייב לממש.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>TrafficObject.cs:8</b></span>
+          <span class="ref"><b>TrafficObject.cs:29-30</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">public abstract class TrafficObject</span>
+{
+    public int X;
+    public int Y;
+    <span class="c">// ...</span>
+
+<span class="hl">    public abstract void Draw(Graphics g, bool isNight);</span>
+<span class="hl">    public abstract void Move(TrafficObjectCollection all);</span>
+}</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">ירושה</p>
+        <p class="p-term">Inheritance</p>
+        <p class="p-desc">
+          שתי רמות: <b>Car</b> יורשת מ-<b>RoadUser</b> שיורשת מ-<b>TrafficObject</b>.
+          כל בנאי מעביר את הפרמטרים למעלה בשרשרת דרך <span class="ref">: base(...)</span>.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>RoadUser.cs:6, 17</b></span>
+          <span class="ref"><b>Car.cs:7, 11</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">public class Car : RoadUser</span>
+{
+    public CarModel Model;
+
+    public Car(int x, int y, int lane, Direction dir,
+               CarModel model, float desiredSpeed = 90f)
+<span class="hl">        : base(x, y, lane, dir, desiredSpeed)</span>
+    {
+        Model = model;
+        Width = 50;
+        Height = 25;
+    }
+}</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">פולימורפיזם</p>
+        <p class="p-term">Polymorphism</p>
+        <p class="p-desc">
+          <strong>זה החלק החשוב ביותר להראות.</strong> לולאה אחת רצה על רשימה מטיפוס הבסיס,
+          קוראת ל-<span class="ref">Draw</span> אחת — ובזמן ריצה כל אובייקט מריץ את המימוש שלו.
+          אין כאן שום <span class="ref">switch</span> על סוג האובייקט.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>MainForm.cs:187-191</b></span>
+          <span class="ref"><b>TrafficObjectCollection.cs:99-103</b></span>
+        </div>
+      </div>
+      <pre><span class="c">// MainForm.OnPaint - ציור כל העולם</span>
+var objects = _trafficCollection.GetAllObjects();
+for (int i = 0; i &lt; objects.Count; i++)
+{
+<span class="hl">    objects[i].Draw(g, _isNight);   <span class="c">// כל טיפוס מצייר את עצמו</span></span>
+}
+
+<span class="c">// TrafficObjectCollection.UpdateAll - הזזת כל העולם</span>
+foreach (var item in _items)
+{
+    if (item == draggedObject) continue;
+<span class="hl">    item.Move(this);                <span class="c">// כל טיפוס זז אחרת</span></span>
+}</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">דריסה של מתודה וירטואלית</p>
+        <p class="p-term">virtual / override / base</p>
+        <p class="p-desc">
+          <b>GetBounds</b> היא <span class="ref">virtual</span> בבסיס — יש לה מימוש ברירת מחדל.
+          <b>RoadUser</b> דורסת אותה כדי להחליף רוחב בגובה כשהרכב נוסע אנכית,
+          ועדיין קוראת ל-<span class="ref">base.GetBounds()</span> במקרה הפשוט.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>TrafficObject.cs:31</b></span>
+          <span class="ref"><b>RoadUser.cs:10-15</b></span>
+        </div>
+      </div>
+      <pre><span class="c">// TrafficObject - ברירת המחדל</span>
+<span class="hl">public virtual Rectangle GetBounds()</span>
+{
+    return new Rectangle(X, Y, Width, Height);
+}
+
+<span class="c">// RoadUser - רכב אנכי תופס מלבן מסובב</span>
+<span class="hl">public override System.Drawing.Rectangle GetBounds()</span>
+{
+    if (this is Pedestrian || RoadLayout.IsHorizontal(Direction))
+<span class="hl">        return base.GetBounds();</span>
+    return new System.Drawing.Rectangle(X + (Width - Height) / 2,
+        Y + (Height - Width) / 2, Height, Width);
+}</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">כימוס</p>
+        <p class="p-term">Encapsulation</p>
+        <p class="p-desc">
+          הרשימה הפנימית <span class="ref">_items</span> היא <span class="ref">private</span> —
+          אף אחד מבחוץ לא יכול להחליף אותה. ב-<b>Pedestrian</b> יש תכונה שניתן לקרוא מבחוץ
+          אך לכתוב רק מבפנים, וב-<b>RoadUser</b> מתודות עזר <span class="ref">protected</span>
+          שזמינות רק ליורשים.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>TrafficObjectCollection.cs:10</b></span>
+          <span class="ref"><b>Pedestrian.cs:11</b></span>
+          <span class="ref"><b>RoadUser.cs:22, 49</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">private List&lt;TrafficObject&gt; _items = new List&lt;TrafficObject&gt;();</span>
+
+<span class="c">// קריאה לכולם, כתיבה רק מתוך המחלקה</span>
+<span class="hl">public bool WalksOnSidewalk { get; private set; }</span>
+
+<span class="c">// עזרה פנימית שרק יורשים רואים</span>
+<span class="hl">protected bool IsLaneClear(TrafficObjectCollection all, int targetLane)</span>
+<span class="hl">protected bool ShouldStopAtIntersection(TrafficObjectCollection all)</span></pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">אוסף מותאם אישית</p>
+        <p class="p-term">Custom Collection</p>
+        <p class="p-desc">
+          <b>TrafficObjectCollection</b> <strong>אינה יורשת</strong> מ-<span class="ref">List&lt;T&gt;</span>
+          אלא <em>מכילה</em> אחת (הכלה במקום ירושה). כך ה-API מצומצם ומבוקר —
+          ולמשל <b>Add</b> שלנו מבצע פעולה נוספת שלרשימה רגילה אין: מרכוז האובייקט בנתיב שלו.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>TrafficObjectCollection.cs:8-10</b></span>
+          <span class="ref"><b>TrafficObjectCollection.cs:62-72</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">public class TrafficObjectCollection   <span class="c">// לא : List&lt;TrafficObject&gt;</span></span>
+{
+<span class="hl">    private List&lt;TrafficObject&gt; _items = new List&lt;TrafficObject&gt;();</span>
+
+    public void Add(TrafficObject obj)
+    {
+        <span class="c">// הוספה שגם אוכפת חוק: רכב תמיד במרכז הנתיב.</span>
+        <span class="c">// הולכי רגל ותחנות נשארים על המדרכה.</span>
+        if (!(obj is Pedestrian) &amp;&amp; !(obj is BusStation))
+        {
+            RoadLayout.CenterInLane(obj);
+        }
+        _items.Add(obj);
+    }
+}</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">אינדקסר ותכונות מחושבות</p>
+        <p class="p-term">Indexer / Properties</p>
+        <p class="p-desc">
+          האינדקסר מאפשר <span class="ref">collection[3]</span> כאילו זו רשימה.
+          <b>Count</b> היא תכונה לקריאה בלבד, ו-<b>HasActiveEmergency</b> היא תכונה
+          <em>מחושבת</em> — היא סורקת את האוסף בכל קריאה במקום להחזיק שדה שעלול להתיישן.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>TrafficObjectCollection.cs:47-51</b></span>
+          <span class="ref"><b>TrafficObjectCollection.cs:21-32</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">public TrafficObject this[int index]</span>
+{
+    get { return _items[index]; }
+    set { _items[index] = value; }
+}
+
+<span class="hl">public bool HasActiveEmergency</span>
+{
+    get
+    {
+        for (int i = 0; i &lt; _items.Count; i++)
+        {
+            if (_items[i] is EmergencyVehicle emergency &amp;&amp; emergency.SirenOn)
+                return true;
+        }
+        return false;
+    }
+}</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">טיפוסים מנויים</p>
+        <p class="p-term">Enums</p>
+        <p class="p-desc">
+          ארבעה enums במקום מחרוזות או מספרים קסומים. <b>Direction</b> הוא הקריטי —
+          הוא משמש גם ככיוון נסיעה, גם כזיהוי הכביש שאליו שייך הרמזור,
+          וגם כמפתח לחישובי הגיאומטריה ב-<b>RoadLayout</b>.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>Models/Enums.cs:3-30</b></span>
+        </div>
+      </div>
+      <pre>public enum CarModel { Sedan, SportsCar, Hatchback }
+
+<span class="hl">public enum Direction { Up, Down, Left, Right }</span>
+
+public enum VehicleState { Moving, Braking, Stopped, Yielding }
+
+public enum StationType { Regular, Central, Express }</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">מחלקות סטטיות</p>
+        <p class="p-term">static class</p>
+        <p class="p-desc">
+          שתי מחלקות שאין שום היגיון ליצור מהן מופע: <b>RoadLayout</b> היא ידע טהור על
+          הגיאומטריה של הצומת (קבועים + חישובים), ו-<b>SaveLoadManager</b> היא שירות קבצים.
+          שתיהן <span class="ref">static</span> ולכן לא ניתנות ליצירה בכלל.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>RoadLayout.cs:6-23</b></span>
+          <span class="ref"><b>SaveLoadManager.cs:5</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">public static class RoadLayout</span>
+{
+<span class="hl">    public const int CanvasWidth  = 760;</span>
+<span class="hl">    public const int RoadWidth    = 160;</span>
+    public const int LanesPerDirection = 2;
+    public const int LaneWidth = RoadWidth / 2 / LanesPerDirection;
+    private const int CrosswalkOffset = 40;
+    <span class="c">// ...כל מספר בצומת מוגדר פעם אחת, כאן</span>
+}
+
+<span class="hl">public static class SaveLoadManager</span></pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">מתודות יצרן סטטיות</p>
+        <p class="p-term">Static Factory Methods</p>
+        <p class="p-desc">
+          ל-<b>Pedestrian</b> יש שלושה מסלולי חיים שונים. במקום בנאי אחד עם דגלים,
+          יש מתודות סטטיות עם שמות מדברים שמחזירות הולך רגל מוכן לתרחיש שלו.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>Pedestrian.cs:35-48</b></span>
+          <span class="ref"><b>MainForm.cs:97-102</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">public static Pedestrian CreateSidewalkWalker(</span>
+    int x, int y, Direction direction, float desiredSpeed = 2f)
+{
+    var pedestrian = new Pedestrian(x, y, 0, direction, desiredSpeed);
+    pedestrian._approaching = false;
+    pedestrian._departing = true;
+    return pedestrian;
+}
+
+<span class="hl">public static Pedestrian CreateSidewalkWalkerTowardsCrosswalk(...)</span></pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">סריאליזציה ותאימות לאחור</p>
+        <p class="p-term">Serialization</p>
+        <p class="p-desc">
+          כל מחלקה מסומנת <span class="ref">[Serializable]</span>, והשמירה היא של האוסף כולו
+          בפעולה אחת. שדות שנוספו בגרסאות מאוחרות מסומנים <span class="ref">[OptionalField]</span>
+          כדי שקבצים ישנים עדיין ייטענו, ו-<span class="ref">[OnDeserialized]</span>
+          משחזר מסלול הליכה של הולך רגל מגרסה ישנה.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>SaveLoadManager.cs:7-27</b></span>
+          <span class="ref"><b>TrafficObjectCollection.cs:14-19</b></span>
+          <span class="ref"><b>Pedestrian.cs:18-26</b></span>
+        </div>
+      </div>
+      <pre>public static void Save(TrafficObjectCollection collection, string path)
+{
+    using (var fs = new FileStream(path, FileMode.Create))
+    {
+<span class="hl">        var formatter = new BinaryFormatter();</span>
+<span class="hl">        formatter.Serialize(fs, collection);   <span class="c">// כל העולם בשורה אחת</span></span>
+    }
+}
+
+<span class="c">// תאימות לקבצים שנשמרו לפני שהשדות האלה נולדו</span>
+<span class="hl">[field: OptionalField] public bool IsAmber { get; set; }</span>
+<span class="hl">[OnDeserialized] private void RestoreLegacyRoute(StreamingContext c)</span></pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">אירועים ומטפלים</p>
+        <p class="p-term">Events / Delegates</p>
+        <p class="p-desc">
+          הטיימר, הכפתורים והעכבר כולם מחוברים דרך אירועים.
+          שים לב לשורה האחרונה — מטפל אנונימי (lambda) שמשחרר את הטיימר בסגירת הטופס.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>MainForm.cs:42-45</b></span>
+          <span class="ref"><b>MainForm.cs:531-608</b></span>
+        </div>
+      </div>
+      <pre>_simTimer.Interval = 100;
+<span class="hl">_simTimer.Tick += SimTimer_Tick;</span>
+_simTimer.Start();
+<span class="hl">FormClosed += (sender, e) =&gt; _simTimer.Dispose();   <span class="c">// lambda</span></span>
+
+<span class="c">// אירועי עכבר: גרירה, מחיקה, שינוי גודל וסיבוב</span>
+PictureBoxCanvas_MouseDown / MouseMove / MouseUp / MouseWheel</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">שימוש חוזר בקוד בסיס</p>
+        <p class="p-term">Protected Helpers</p>
+        <p class="p-desc">
+          כל רכב מצייר את עצמו כאילו הוא תמיד פונה ימינה מהנקודה (0,0),
+          והמחלקה הבסיסית אחראית לסובב את מערכת הצירים לפי הכיוון.
+          זה חוסך שכפול קוד ציור בכל אחת מחמש מחלקות הרכב.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>TrafficObject.cs:41-58</b></span>
+          <span class="ref"><b>TrafficObject.cs:60-84</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">protected GraphicsState BeginOrientedDraw(Graphics g)</span>
+{
+    GraphicsState state = g.Save();
+    g.TranslateTransform(X + Width / 2f, Y + Height / 2f);
+    switch (Direction)
+    {
+        case Direction.Down: g.RotateTransform(90);  break;
+        case Direction.Left: g.RotateTransform(180); break;
+        case Direction.Up:   g.RotateTransform(270); break;
+    }
+    g.TranslateTransform(-Width / 2f, -Height / 2f);
+    return state;
+}
+<span class="c">// + RoundedRect() ו-DrawWheels() שכל הרכבים חולקים</span></pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">בדיקת טיפוס ותבניות</p>
+        <p class="p-term">Pattern Matching</p>
+        <p class="p-desc">
+          <span class="ref">is</span> עם משתנה תבנית מזהה טיפוס ומבצע המרה בפעולה אחת.
+          כאן זה החוק שמונע מרכב להיכנס למעבר חצייה תפוס — הפיצ'ר האחרון שנוסף לפרויקט.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>RoadUser.cs:71-79</b></span>
+          <span class="ref"><b>RoadUser.cs:51</b></span>
+        </div>
+      </div>
+      <pre>private bool IsPedestrianOnMyCrosswalk(TrafficObjectCollection all)
+{
+    foreach (var obj in all.GetAllObjects())
+    {
+<span class="hl">        if (obj is Pedestrian pedestrian &amp;&amp; pedestrian.IsCrossing</span>
+<span class="hl">            &amp;&amp; pedestrian.Direction == Direction)</span>
+            return true;
+    }
+    return false;
+}</pre>
+    </div>
+
+    <div class="principle">
+      <div>
+        <p class="p-name">טיפול בשגיאות</p>
+        <p class="p-term">Exception Handling</p>
+        <p class="p-desc">
+          פעולות קבצים הן הגבול של המערכת מול העולם החיצון — ולכן שם, ורק שם,
+          יש <span class="ref">try/catch</span> שמציג הודעה ידידותית במקום לקרוס.
+        </p>
+        <div class="p-refs">
+          <span class="ref"><b>MainForm.cs:468-478</b></span>
+          <span class="ref"><b>MainForm.cs:490-517</b></span>
+        </div>
+      </div>
+      <pre><span class="hl">try</span>
+{
+    _trafficCollection.IsNightMode = _isNight;
+    SaveLoadManager.Save(_trafficCollection, sfd.FileName);
+    MessageBox.Show("הסימולציה נשמרה בהצלחה!", ...);
+}
+<span class="hl">catch (Exception ex)</span>
+{
+    MessageBox.Show("שגיאה בשמירה: " + ex.Message, ...);
+}</pre>
+    </div>
+  </section>
+
+  <!-- ============ 5 ============ -->
+  <section id="tick">
+    <div class="sec-head">
+      <span class="sec-num">5</span>
+      <h2>מחזור החיים של פריים אחד</h2>
+    </div>
+    <p class="sec-sub">מה בדיוק קורה כל 100 מילישניות — זו הרצף שכדאי לתאר בעל פה</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-n">1</span>
+        <div class="step-b">
+          <b>הטיימר פועם.</b> <span class="ref">Timer.Interval = 100</span> ולכן זה קורה עשר פעמים בשנייה.
+          אם הסימולציה במצב Pause — מדלגים ישר לציור.<br>
+          <span class="ref"><b>MainForm.cs:105</b> SimTimer_Tick</span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">2</span>
+        <div class="step-b">
+          <b>עדכון כל העולם.</b> האוסף עובר על כל הישויות וקורא לכל אחת <span class="ref">Move</span> —
+          כאן מתרחש הפולימורפיזם. אובייקט שנגרר כרגע בעכבר מדולג.<br>
+          <span class="ref"><b>TrafficObjectCollection.cs:97</b> UpdateAll</span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">3</span>
+        <div class="step-b">
+          <b>כל רכב שואל: לעצור?</b> שלוש סיבות לעצור — רכב חירום פעיל בזירה,
+          הולך רגל במעבר החצייה שלי, או רמזור שאינו ירוק לכיוון שלי.
+          רכב שכבר חצה את קו העצירה ממשיך תמיד.<br>
+          <span class="ref"><b>RoadUser.cs:49</b> ShouldStopAtIntersection</span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">4</span>
+        <div class="step-b">
+          <b>שמירת מרחק.</b> סריקה של האובייקטים שלפניי באותו נתיב; המהירות בפועל
+          נחתכת למרחק הפנוי פחות מרווח ביטחון. כך נוצרת בלימה הדרגתית וגם פקק.<br>
+          <span class="ref"><b>RoadUser.cs:81</b> EvaluateSurroundings</span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">5</span>
+        <div class="step-b">
+          <b>תזוזה בפועל.</b> הוספת המהירות ל-X או ל-Y לפי הכיוון, במקום אחד מרכזי.<br>
+          <span class="ref"><b>RoadLayout.cs:213</b> Advance</span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">6</span>
+        <div class="step-b">
+          <b>צבירת סטטיסטיקה.</b> המרחק שנסע נצבר ל-<span class="ref">_totalDistance</span>;
+          תנועה לרוחב בהחלפת נתיב לא נספרת.<br>
+          <span class="ref"><b>TrafficObjectCollection.cs:107</b></span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">7</span>
+        <div class="step-b">
+          <b>ניקוי ויציאה מהמסך.</b> מי שיצא מגבולות הקנבס נמחק מהאוסף.<br>
+          <span class="ref"><b>MainForm.cs:166</b> RemoveOutOfBoundsObjects</span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">8</span>
+        <div class="step-b">
+          <b>קידום הרמזור.</b> מכונת מצבים: ירוק 60 טיקים ← צהוב 15 טיקים ← מעבר לכיוון הבא במחזור.<br>
+          <span class="ref"><b>MainForm.cs:119</b> AdvanceTrafficLight</span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">9</span>
+        <div class="step-b">
+          <b>עדכון הנתונים בתחתית.</b> אחוז עומס ומרחק מצטבר.<br>
+          <span class="ref"><b>MainForm.cs:158</b> UpdateAnalyticsLabel</span>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-n">10</span>
+        <div class="step-b">
+          <b>ציור מחדש.</b> <span class="ref">Invalidate()</span> מבקש פריים חדש, ואז
+          <span class="ref">OnPaint</span> מצייר קודם את הצומת ואז את כל הישויות מעליו.
+          <span class="ref">DoubleBuffered = true</span> מונע ריצוד.<br>
+          <span class="ref"><b>MainForm.cs:180</b> OnPaint</span>
+          <span class="ref"><b>MainForm.cs:194</b> DrawJunction</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6 ============ -->
+  <section id="features">
+    <div class="sec-head">
+      <span class="sec-num">6</span>
+      <h2>מפת פיצ'רים</h2>
+    </div>
+    <p class="sec-sub">כל יכולת בתוכנה, והשורה שמממשת אותה</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>פיצ'ר</th><th>איפה בקוד</th><th>איך זה עובד</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="feat">רמזור ארבעה כיוונים עם שלב צהוב</td>
+            <td class="where"><span class="ref"><b>MainForm.cs:119</b></span></td>
+            <td class="how">מכונת מצבים על מערך <span class="ref">RoadDirections</span>; הכיוון הירוק מפורסם לאוסף</td>
+          </tr>
+          <tr>
+            <td class="feat">ציור הרמזור עצמו</td>
+            <td class="where"><span class="ref"><b>MainForm.cs:311</b></span></td>
+            <td class="how">בית מנורה 22×58 עם שלוש נורות; רק הפעילה נצבעת</td>
+          </tr>
+          <tr>
+            <td class="feat">עצירה בקו עצירה</td>
+            <td class="where"><span class="ref"><b>RoadUser.cs:49</b></span> <span class="ref"><b>RoadLayout.cs:200</b></span></td>
+            <td class="how">בדיקה אם חצינו את הקו; מי שחצה כבר לא נעצר באמצע הצומת</td>
+          </tr>
+          <tr>
+            <td class="feat">זכות קדימה להולך רגל</td>
+            <td class="where"><span class="ref"><b>RoadUser.cs:71</b></span></td>
+            <td class="how">רכב לא נכנס למעבר כל עוד הולך רגל באותו כיוון נמצא בתוכו</td>
+          </tr>
+          <tr>
+            <td class="feat">שמירת מרחק ובלימה</td>
+            <td class="where"><span class="ref"><b>RoadUser.cs:81</b></span></td>
+            <td class="how">המהירות נחתכת לפי המרווח לאובייקט שלפנים</td>
+          </tr>
+          <tr>
+            <td class="feat">עקיפה והחלפת נתיב</td>
+            <td class="where"><span class="ref"><b>RoadUser.cs:22, 37</b></span></td>
+            <td class="how">בדיקת מסדרון פנוי בין הנתיב הנוכחי ליעד לפני המעבר</td>
+          </tr>
+          <tr>
+            <td class="feat">רכב חירום מפנה דרך</td>
+            <td class="where"><span class="ref"><b>EmergencyVehicle.cs:19</b></span></td>
+            <td class="how">מאתר רכבים במרחק 150 פיקסלים ומורה להם לעבור לנתיב הימני</td>
+          </tr>
+          <tr>
+            <td class="feat">אוטובוס עוצר בתחנה</td>
+            <td class="where"><span class="ref"><b>Bus.cs:110</b></span></td>
+            <td class="how">מזהה תחנה קרובה בנתיב, עוצר 15 טיקים, וזוכר שכבר שירת אותה</td>
+          </tr>
+          <tr>
+            <td class="feat">עלייה וירידה של נוסעים</td>
+            <td class="where"><span class="ref"><b>Bus.cs:116-129</b></span></td>
+            <td class="how">כמה יורדים בפתיחת הדלתות, ואז עולים אחד לכל שלושה טיקים עד לקיבולת 24</td>
+          </tr>
+          <tr>
+            <td class="feat">נוסעים נראים בחלונות</td>
+            <td class="where"><span class="ref"><b>Bus.cs:59</b></span></td>
+            <td class="how">עד שמונה עיגולים ירוקים בחלונות, בדיוק בסגנון של הולך רגל</td>
+          </tr>
+          <tr>
+            <td class="feat">ממתינים גלויים בתחנה</td>
+            <td class="where"><span class="ref"><b>BusStation.cs:26</b></span></td>
+            <td class="how">עד שישה עיגולים ליד התחנה, והתור מתקצר כשהאוטובוס אוסף</td>
+          </tr>
+          <tr>
+            <td class="feat">מסלול הולך רגל</td>
+            <td class="where"><span class="ref"><b>Pedestrian.cs:85</b></span></td>
+            <td class="how">שלושה שלבים: התקרבות למעבר, חצייה, ויציאה — כל אחד עם לוגיקה נפרדת</td>
+          </tr>
+          <tr>
+            <td class="feat">מצב יום / לילה</td>
+            <td class="where"><span class="ref"><b>MainForm.cs:631</b></span></td>
+            <td class="how">הדגל עובר לכל <span class="ref">Draw</span> וכל ישות בוחרת פלטה</td>
+          </tr>
+          <tr>
+            <td class="feat">גרירת אובייקטים בעכבר</td>
+            <td class="where"><span class="ref"><b>MainForm.cs:531-576</b></span></td>
+            <td class="how">שחרור מיישר אוטומטית לנתיב, והולך רגל מוצמד למדרכה</td>
+          </tr>
+          <tr>
+            <td class="feat">שינוי גודל וסיבוב</td>
+            <td class="where"><span class="ref"><b>MainForm.cs:578, 610</b></span></td>
+            <td class="how">גלגלת משנה גודל, Shift+גלגלת מסובבת בין ארבעת הכיוונים</td>
+          </tr>
+          <tr>
+            <td class="feat">הוספה ומחיקה של ישויות</td>
+            <td class="where"><span class="ref"><b>MainForm.cs:349</b></span></td>
+            <td class="how">בחירת סוג, כביש ונתיב; רכב חדש נכנס לסוף התור בנתיב</td>
+          </tr>
+          <tr>
+            <td class="feat">שמירה וטעינה</td>
+            <td class="where"><span class="ref"><b>MainForm.cs:460, 482</b></span></td>
+            <td class="how">כולל שחזור מצב הרמזור, מצב לילה והמרחק המצטבר</td>
+          </tr>
+          <tr>
+            <td class="feat">אנליטיקות</td>
+            <td class="where"><span class="ref"><b>TrafficObjectCollection.cs:123, 132</b></span></td>
+            <td class="how">אחוז הרכבים שנוסעים מתחת למהירות הרצויה + סך המרחק</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 7 ============ -->
+  <section id="limits">
+    <div class="sec-head">
+      <span class="sec-num">7</span>
+      <h2>מגבלות הקורס שנשמרו</h2>
+    </div>
+    <p class="sec-sub">אפשר להוכיח כל אחת מהן בחיפוש בקוד</p>
+
+    <div class="constraints">
+      <div class="cx">
+        <div class="cx-h">אפס LINQ</div>
+        <p>אין <span class="ref">using System.Linq</span> באף קובץ בפרויקט.</p>
+      </div>
+      <div class="cx">
+        <div class="cx-h">אפס async / await</div>
+        <p>הכל סינכרוני; הסימולציה מונעת בטיימר של WinForms בלבד.</p>
+      </div>
+      <div class="cx">
+        <div class="cx-h">אפס ריבוי תהליכונים</div>
+        <p>אין <span class="ref">Thread</span> ואין <span class="ref">Task</span>. הכל על ה-UI thread.</p>
+      </div>
+      <div class="cx">
+        <div class="cx-h">אפס חבילות NuGet</div>
+        <p>רק מה שמגיע עם תבנית WinForms הסטנדרטית.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>שים לב להבחנה הזו — סביר שישאלו:</b> בקוד מופיעים
+      <span class="ref">FindAll</span>, <span class="ref">Exists</span> ו-<span class="ref">ForEach</span>.
+      אלה <strong>אינן</strong> שאילתות LINQ אלא מתודות מופע של <span class="ref">List&lt;T&gt;</span>
+      מ-<span class="ref">System.Collections.Generic</span>, שקיימות מאז ‎.NET 2.0 —
+      עוד לפני ש-LINQ נולד. ההוכחה: אין ולו הוראת <span class="ref">using System.Linq</span> אחת בפרויקט.
+    </div>
+  </section>
+
+  <!-- ============ 8 ============ -->
+  <section id="qa">
+    <div class="sec-head">
+      <span class="sec-num">8</span>
+      <h2>שאלות שסביר שתישאל — והתשובה</h2>
+    </div>
+    <p class="sec-sub">עם המקום המדויק להצביע עליו במסך</p>
+
+    <div class="qa">
+      <div class="q">
+        <p class="q-q">למה האוסף לא יורש מ-<span class="ref">List&lt;T&gt;</span>?</p>
+        <p class="q-a">
+          כי ירושה הייתה חושפת החוצה את כל ה-API של הרשימה ומאבדת שליטה על מה שנכנס.
+          בחרנו <b>הכלה</b>: רשימה פרטית פנימית, ו-API מצומצם שאנחנו מגדירים.
+          זה מה שמאפשר ל-<b>Add</b> שלנו לאכוף חוק — כל רכב שנוסף מתמרכז אוטומטית בנתיב שלו,
+          דבר ש-<span class="ref">List.Add</span> לעולם לא היה עושה.
+          <span class="ref"><b>TrafficObjectCollection.cs:62</b></span>
+        </p>
+      </div>
+      <div class="q">
+        <p class="q-q">תראה לי איפה יש פולימורפיזם.</p>
+        <p class="q-a">
+          שתי לולאות, שתיהן על <span class="ref">List&lt;TrafficObject&gt;</span> מטיפוס הבסיס:
+          אחת קוראת <span class="ref">Draw</span> <span class="ref"><b>MainForm.cs:188</b></span>
+          והשנייה קוראת <span class="ref">Move</span> <span class="ref"><b>TrafficObjectCollection.cs:103</b></span>.
+          אותה שורת קוד מפעילה מימוש אחר לגמרי עבור אוטובוס, אופניים או הולך רגל —
+          ואין באף אחת מהן <span class="ref">if</span> או <span class="ref">switch</span> על סוג האובייקט.
+        </p>
+      </div>
+      <div class="q">
+        <p class="q-q">מה ההבדל בין <span class="ref">abstract</span> ל-<span class="ref">virtual</span> אצלכם?</p>
+        <p class="q-a">
+          <b>Draw</b> ו-<b>Move</b> הן <span class="ref">abstract</span>: אין להן שום מימוש בבסיס
+          וכל יורש <em>חייב</em> לממש אותן <span class="ref"><b>TrafficObject.cs:29-30</b></span>.
+          לעומתן <b>GetBounds</b> ו-<b>EvaluateSurroundings</b> הן <span class="ref">virtual</span>:
+          יש להן מימוש ברירת מחדל שעובד, והיורש דורס רק אם צריך —
+          ו-<b>RoadUser</b> אפילו קורא ל-<span class="ref">base.GetBounds()</span> בתוך הדריסה
+          <span class="ref"><b>RoadUser.cs:12</b></span>.
+        </p>
+      </div>
+      <div class="q">
+        <p class="q-q">למה יש שתי רמות ירושה ולא אחת?</p>
+        <p class="q-a">
+          כי לא כל מה שנמצא על המסך זז. <b>RoadUser</b> מרכזת התנהגות ששייכת רק לישות נעה —
+          החלפת נתיב, שמירת מרחק, ציות לרמזור. <b>RoadHazard</b> ו-<b>BusStation</b> סטטיים לחלוטין,
+          ולכן יורשים ישירות מ-<b>TrafficObject</b> ולא נושאים איתם קוד שלא רלוונטי להם.
+          ה-<span class="ref">Move</span> של מכשול ריק בכוונה <span class="ref"><b>RoadHazard.cs:16</b></span>.
+        </p>
+      </div>
+      <div class="q">
+        <p class="q-q">איך שמרתם על תאימות לקבצים שנשמרו בגרסה ישנה?</p>
+        <p class="q-a">
+          שדות שנוספו אחרי שכבר היו קבצים שמורים סומנו <span class="ref">[OptionalField]</span>,
+          כך שטעינה של קובץ ישן פשוט משאירה אותם בערך ברירת המחדל במקום לזרוק חריגה
+          <span class="ref"><b>TrafficObjectCollection.cs:14-19</b></span>.
+          בנוסף, <span class="ref">[OnDeserialized]</span> ב-<b>Pedestrian</b> בונה מחדש מסלול הליכה
+          להולכי רגל שנשמרו לפני שהמסלול התלת-שלבי היה קיים <span class="ref"><b>Pedestrian.cs:18</b></span>.
+        </p>
+      </div>
+      <div class="q">
+        <p class="q-q">איפה מונעים ריצוד באנימציה?</p>
+        <p class="q-a">
+          <span class="ref">DoubleBuffered = true</span> בבנאי של הטופס
+          <span class="ref"><b>MainForm.cs:37</b></span> — הפריים נבנה בזיכרון ומוצג בבת אחת.
+          בנוסף <span class="ref">SmoothingMode.AntiAlias</span> ב-<b>OnPaint</b> מחליק את הקצוות
+          <span class="ref"><b>MainForm.cs:183</b></span>.
+        </p>
+      </div>
+      <div class="q">
+        <p class="q-q">איך אתם מונעים כפילות קוד בציור של חמישה סוגי רכב?</p>
+        <p class="q-a">
+          המחלקה הבסיסית מספקת שלוש מתודות <span class="ref">protected</span> משותפות:
+          <b>BeginOrientedDraw</b> שמסובבת את מערכת הצירים לפי כיוון הנסיעה,
+          <b>RoundedRect</b> לגוף הרכב ו-<b>DrawWheels</b> לגלגלים
+          <span class="ref"><b>TrafficObject.cs:41-84</b></span>.
+          כל רכב מצייר את עצמו כאילו הוא תמיד פונה ימינה, והבסיס מטפל בסיבוב.
+        </p>
+      </div>
+      <div class="q">
+        <p class="q-q">מה קורה אם שני רכבים מגיעים לאותה נקודה?</p>
+        <p class="q-a">
+          לא נוצרת התנגשות כי המהירות נחתכת <em>לפני</em> התזוזה:
+          <b>EvaluateSurroundings</b> מוצא את המרווח לאובייקט הקרוב ביותר שלפנים באותו ציר,
+          ומגביל את <span class="ref">ActualSpeed</span> למרווח פחות שמונה פיקסלים —
+          כך שרכב תמיד עוצר לפני מגע <span class="ref"><b>RoadUser.cs:81</b></span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>TrafficSimulator · C# · .NET 8 · WinForms</span>
+    <span>Guy Franses</span>
+  </footer>
+
+</div>
+</body>
+</html>
