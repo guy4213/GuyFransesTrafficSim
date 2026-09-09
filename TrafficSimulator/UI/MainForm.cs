@@ -351,7 +351,6 @@ namespace TrafficSimulator
             Direction dir = RoadDirections[comboBoxRoad.SelectedIndex];
             int lane = (int)numericUpDownLane.Value;
             string type = comboBoxEntityType.SelectedItem as string;
-            if (type == "Bus") lane = RoadLayout.RightLane;
 
             // Static objects are placed explicitly via Offset. Hazards are measured back
             // from the stop line; stations sit by the outgoing road after the light.
