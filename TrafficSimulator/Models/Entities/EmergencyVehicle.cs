@@ -13,12 +13,13 @@ namespace TrafficSimulator
         {
             Width = 55;
             Height = 25;
-            SirenOn = false;
+            // Every emergency vehicle in the sim represents an active call, so it
+            // always has the right of way rather than only once traffic blocks it.
+            SirenOn = true;
         }
 
         public void TriggerYieldOnNearbyVehicles(TrafficObjectCollection all)
         {
-            bool hasVehicleAhead = false;
             var objectsAhead = all.GetObjectsInLane(Direction, Lane);
 
             foreach (var obj in objectsAhead)
@@ -26,16 +27,12 @@ namespace TrafficSimulator
                 if (obj is RoadUser vehicle && !(vehicle is Pedestrian) && vehicle != this)
                 {
                     int diff = RoadLayout.ForwardDistance(this, vehicle);
-                    if (diff > 0 && diff < 150)
+                    if (diff > 0 && diff < 150 && vehicle.Lane != RoadLayout.RightLane)
                     {
-                        hasVehicleAhead = true;
-                        if (vehicle.Lane != RoadLayout.RightLane)
-                            vehicle.AttemptLaneChange(all);
+                        vehicle.AttemptLaneChange(all);
                     }
                 }
             }
-
-            SirenOn = hasVehicleAhead;
         }
 
         public override void Draw(Graphics g, bool isNight)
