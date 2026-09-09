@@ -159,8 +159,7 @@ namespace TrafficSimulator
         {
             float congestion = _trafficCollection.GetCongestionRate();
             double mileage = _trafficCollection.GetTotalMileage();
-            string emergencyNote = _trafficCollection.HasActiveEmergency ? "   🚨 EMERGENCY OVERRIDE" : "";
-            labelAnalytics.Text = $"Congestion: {congestion:F0}%   Distance: {mileage:F0} px{emergencyNote}";
+            labelAnalytics.Text = $"Congestion: {congestion:F0}%   Distance: {mileage:F0} px";
         }
 
         private void RemoveOutOfBoundsObjects()
